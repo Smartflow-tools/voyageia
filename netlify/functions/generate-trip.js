@@ -168,22 +168,22 @@ error: data.error?.message || "Erreur API Anthropic"
 };
 }
 
-const text = data.content[0].text;
+let text = data.content[0].text;
+
+text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
 let guide;
 
 try {
 guide = JSON.parse(text);
 } catch (e) {
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: "Réponse IA non JSON."
-})
-};
+
+const start = text.indexOf("{");
+const end = text.lastIndexOf("}") + 1;
+
+const jsonString = text.slice(start, end);
+
+guide = JSON.parse(jsonString);
 }
 
 return {
