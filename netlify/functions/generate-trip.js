@@ -192,7 +192,20 @@ jsonString = jsonString
 .replace(/\n/g, " ")
 .replace(/\r/g, " ");
 
+try {
 guide = JSON.parse(jsonString);
+} catch (e2) {
+return {
+statusCode: 500,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+error: e2.message,
+raw: jsonString.slice(0, 4000)
+})
+};
+}
 }
 
 return {
