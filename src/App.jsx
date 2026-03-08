@@ -1061,6 +1061,22 @@ onClick={() => window.print()}
 </header>
 
 {!printMode && (
+<div style={{ marginTop: 24 }}>
+<TripForm
+form={form}
+setForm={setForm}
+onSubmit={handleGenerate}
+loading={loading}
+/>
+{error ? (
+<div style={{ color: "#ff8f8f", marginTop: 12, fontSize: 13 }}>
+{error}
+</div>
+) : null}
+</div>
+)}  
+  
+{!printMode && (
 <nav className="nav">
 {TABS.map((t) => (
 <button
