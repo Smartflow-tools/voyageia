@@ -47,7 +47,7 @@ body: JSON.stringify({ error: "Clé API Anthropic manquante côté serveur." })
 }
 
 const prompt = `
-Tu génères un guide de voyage PREMIUM en JSON strict.
+Tu génères un guide de voyage premium en JSON strict.
 Réponds uniquement avec un JSON valide.
 Aucun markdown. Aucun texte avant ou après le JSON.
 
@@ -64,11 +64,11 @@ Contexte utilisateur :
 
 Contraintes :
 - Le résultat doit être réaliste, cohérent, utile et vendable.
-- Ne donne pas de détails faux ou trop précis si tu n’es pas sûr.
-- L’itinéraire doit contenir exactement ${durationDays} jours.
 - Tous les textes doivent être écrits en ${language}.
-- Si une URL précise d’hôtel ou de restaurant n’est pas certaine, utilise une URL de recherche générique Google Maps ou Booking.
-- Renvoie exactement cette structure JSON :
+- L’itinéraire doit contenir exactement ${durationDays} jours.
+- Si une information précise est incertaine, reste utile mais prudent.
+- Si une URL exacte n’est pas certaine, utilise une URL de recherche générique.
+- Réponds exactement avec cette structure JSON :
 
 {
 "destination": "string",
@@ -234,7 +234,7 @@ Contraintes :
 }
 `;
 
-const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+const response = await fetch("https://api.anthropic.com/v1/messages", {
 method: "POST",
 headers: {
 "content-type": "application/json",
@@ -254,27 +254,27 @@ content: prompt
 })
 });
 
-if (!anthropicResponse.ok) {
-const errText = await anthropicResponse.text();
+if (!response.ok) {
+const details = await response.text();
 return {
-statusCode: anthropicResponse.status,
+statusCode: response.status,
 headers: {
 "Content-Type": "application/json"
 },
 body: JSON.stringify({
 error: "Erreur Anthropic",
-details: errText
+details
 })
 };
 }
 
-const data = await anthropicResponse.json();
+const data = await response.json();
 const text = data?.content?.[0]?.text || "";
 
 let trip;
 try {
 trip = JSON.parse(text);
-} catch (parseError) {
+} catch (e) {
 return {
 statusCode: 500,
 headers: {
@@ -307,3 +307,4 @@ details: error.message
 };
 }
 };
+
