@@ -996,19 +996,80 @@ const renderTab = () => {
 };
 
 async function handleGenerate() {
-  setLoading(true);
-  setError("");
+setLoading(true);
+setError("");
 
-  try {
-    const result = await generateTrip(form);
-    setTripData(result);
-    setTab("itinerary");
-  } catch (err) {
-    setError(err.message || "Impossible de générer le guide.");
-  } finally {
-    setLoading(false);
-  }
+try {
+const result = await generateTrip(form);
+setTripData(result);
+setTab("itinerary");
+} catch (err) {
+setError(err.message || "Impossible de générer le guide.");
+} finally {
+setLoading(false);
 }
+}
+
+const renderTab = () => {
+switch (tab) {
+case "itinerary":
+return (
+<div>
+{TRIP.itinerary.map((d) => (
+<DayCard key={d.day} day={d} />
+))}
+</div>
+);
+
+case "map":
+return <MapTab />;
+
+case "flights":
+return <FlightsTab />;
+
+case "hotels":
+return <HotelsTab />;
+
+case "restaurants":
+return <RestaurantsTab />;
+
+case "weather":
+return <WeatherTab />;
+
+case "budget":
+return <BudgetTab />;
+
+case "health":
+return <HealthTab />;
+
+case "carbon":
+return <CarbonTab />;
+
+case "family":
+return <FamilyTab />;
+
+case "phrases":
+return <PhrasebookTab />;
+
+case "photos":
+return <PhotoSpotsTab />;
+
+case "reminders":
+return <RemindersTab />;
+
+case "checklist":
+return <ChecklistTab />;
+
+case "info":
+return <InfoTab />;
+
+case "notes":
+return <NotesTab />;
+
+default:
+return null;
+}
+};
 
 return (
 <div className={`app${printMode ? " print-mode" : ""}`}>
@@ -1016,9 +1077,11 @@ return (
 
 <header className="hdr">
 <div className="logo">Voyage<em>IA</em></div>
+
 <div className="hdr-trip">
 {TRIP.destination} · {TRIP.duration} jours · {TRIP.travelers} adultes · {TRIP.budget}
 </div>
+
 <div className="hdr-actions">
 <button
 className={`hdr-btn${printMode ? " active" : ""}`}
@@ -1026,51 +1089,22 @@ onClick={() => setPrintMode((p) => !p)}
 >
 {printMode ? "✓ Mode impression" : "🖨️ Mode impression"}
 </button>
-<button className="hdr-btn no-print" onClick={() => window.print()}>
+
+<button
+className="hdr-btn no-print"
+onClick={() => window.print()}
+>
 📄 Imprimer / PDF
 </button>
 </div>
 </header>
 
 {!printMode && (
-<div className="hero">
-<div className="hero-dest">{TRIP.destination}</div>
-<p className="hero-sum">{TRIP.summary}</p>
-
-<div className="chips">
-{[
-`✦ ${TRIP.duration} jours`,
-`☀ ${TRIP.bestPeriod}`,
-`👥 ${TRIP.travelers} adultes`,
-`🏄 ${TRIP.style}`,
-`💛 ${TRIP.budget}`
-].map((c) => (
-<span key={c} className="chip">{c}</span>
-))}
-</div>
-
-<div style={{ marginTop: 24 }}>
-<TripForm
-form={form}
-setForm={setForm}
-onSubmit={handleGenerate}
-loading={loading}
-/>
-{error ? (
-<div style={{ color: "#ff8f8f", marginTop: 12, fontSize: 13 }}>
-{error}
-</div>
-) : null}
-</div>
-</div>
-)}
-
-{!printMode && (
 <nav className="nav">
 {TABS.map((t) => (
 <button
 key={t.id}
-className={`ntab${tab === t.id ? " on" : ""}`}
+className={`ntab ${tab === t.id ? "active" : ""}`}
 onClick={() => setTab(t.id)}
 >
 {t.icon} {t.label}
@@ -1091,7 +1125,7 @@ borderBottom: "2px solid var(--border)"
 >
 <div
 style={{
-fontFamily: "Playfair Display,serif",
+fontFamily: "Playfair Display, serif",
 fontSize: 48,
 fontStyle: "italic",
 color: "var(--gold)"
@@ -1099,11 +1133,21 @@ color: "var(--gold)"
 >
 {TRIP.destination}
 </div>
-<div style={{ fontSize: 13, color: "var(--muted)", marginTop: 8 }}>
-{TRIP.duration} jours · {TRIP.travelers} adultes · {TRIP.budget} · {TRIP.departureCity} → {TRIP.destination}
+
+<div
+style={{
+fontSize: 13,
+color: "var(--muted)",
+marginTop: 8
+}}
+>
+{TRIP.duration} jours · {TRIP.travelers} adultes · {TRIP.budget}
 </div>
 </div>
-{TRIP.itinerary.map((d) => <DayCard key={d.day} day={d} />)}
+
+{TRIP.itinerary.map((d) => (
+<DayCard key={d.day} day={d} />
+))}
 </div>
 ) : (
 renderTab()
@@ -1113,98 +1157,4 @@ renderTab()
 );
 }
 
-
-const renderTab = () => {
-switch (tab) {
-case "itinerary":
-return <div>{TRIP.itinerary.map((d) => <DayCard key={d.day} day={d} />)}</div>;
-case "map":
-return <MapTab />;
-case "flights":
-return <FlightsTab />;
-case "hotels":
-return <HotelsTab />;
-case "restaurants":
-return <RestaurantsTab />;
-case "weather":
-return <WeatherTab />;
-case "budget":
-return <BudgetTab />;
-case "health":
-return <HealthTab />;
-case "carbon":
-return <CarbonTab />;
-case "family":
-return <FamilyTab />;
-case "phrases":
-return <PhrasebookTab />;
-case "photos":
-return <PhotoSpotsTab />;
-case "reminders":
-return <RemindersTab />;
-case "checklist":
-return <ChecklistTab />;
-case "info":
-return <InfoTab />;
-case "notes":
-return <NotesTab />;
-default:
-return null;
-}
-};
-
-return (
-<div className={`app${printMode ? " print-mode" : ""}`}>
-<style>{CSS}</style>
-      <header className="hdr">
-        <div className="logo">Voyage<em>IA</em></div>
-        <div className="hdr-trip">{TRIP.destination} · {TRIP.duration} jours · {TRIP.travelers} adultes · {TRIP.budget}</div>
-        <div className="hdr-actions">
-          <button className={`hdr-btn${printMode?" active":""}`} onClick={()=>setPrintMode(p=>!p)}>
-            {printMode?"✓ Mode impression":"🖨️ Mode impression"}
-          </button>
-          <button className="hdr-btn no-print" onClick={()=>window.print()}>📄 Imprimer / PDF</button>
-        </div>
-      </header>
-
-      {!printMode && (
-        <div className="hero">
-          <div className="hero-dest">{TRIP.destination}</div>
-          <p className="hero-sum">{TRIP.summary}</p>
-          <div className="chips">
-            {["✦ 7 jours","☀ Mars–Mai / Sept–Nov","👥 2 adultes","🏄 Nature & Plages","🎶 Soirées","💛 Confort"].map(c=><span key={c} className="chip">{c}</span>)}
-          </div>
-        </div>
-      )}
-
-      {!printMode && (
-        <nav className="nav">
-          {TABS.map(t=>(
-            <button
-              key={t.id} 
-              className={`ntab ${tab === t.id ? "active" : ""}`} 
-              onClick={()=>setTab(t.id)}
-            >
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </nav>
-      )}
-
-      <main className="main">
-        {printMode ? (
-          <div>
-            <div style={{textAlign:"center",padding:"20px 0 32px",borderBottom:"2px solid var(--border)"}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:48,fontStyle:"italic",color:"var(--gold)"}}>{TRIP.destination}</div>
-              <div style={{fontSize:13,color:"var(--muted)",marginTop:8}}>7 jours · 2 adultes · Confort · {TRIP.departureCity} → {TRIP.destination}</div>
-            </div>
-            {TRIP.itinerary.map((d) => (
-              <DayCard key={d.day} day={d} />
-          ))}
-        </div>
-      ) : (
-        renderTab()
-      )}
-      </main>
-    </div>
-  );
+export default App;
