@@ -1114,31 +1114,48 @@ renderTab()
 }
 
 
-  const renderTab = () => {
-    switch(tab) {
-      case "itinerary": return <div>{TRIP.itinerary.map(d=><DayCard key={d.day} day={d}/>)}</div>;
-      case "map": return <MapTab/>;
-      case "flights": return <FlightsTab/>;
-      case "hotels": return <HotelsTab/>;
-      case "restaurants": return <RestaurantsTab/>;
-      case "weather": return <WeatherTab/>;
-      case "budget": return <BudgetTab/>;
-      case "health": return <HealthTab/>;
-      case "carbon": return <CarbonTab/>;
-      case "family": return <FamilyTab/>;
-      case "phrases": return <PhrasebookTab/>;
-      case "photos": return <PhotoSpotsTab/>;
-      case "reminders": return <RemindersTab/>;
-      case "checklist": return <ChecklistTab/>;
-      case "info": return <InfoTab/>;
-      case "notes": return <NotesTab/>;
-      default: return null;
-    }
-  };
+const renderTab = () => {
+switch (tab) {
+case "itinerary":
+return <div>{TRIP.itinerary.map((d) => <DayCard key={d.day} day={d} />)}</div>;
+case "map":
+return <MapTab />;
+case "flights":
+return <FlightsTab />;
+case "hotels":
+return <HotelsTab />;
+case "restaurants":
+return <RestaurantsTab />;
+case "weather":
+return <WeatherTab />;
+case "budget":
+return <BudgetTab />;
+case "health":
+return <HealthTab />;
+case "carbon":
+return <CarbonTab />;
+case "family":
+return <FamilyTab />;
+case "phrases":
+return <PhrasebookTab />;
+case "photos":
+return <PhotoSpotsTab />;
+case "reminders":
+return <RemindersTab />;
+case "checklist":
+return <ChecklistTab />;
+case "info":
+return <InfoTab />;
+case "notes":
+return <NotesTab />;
+default:
+return null;
+}
+};
 
-  return (
-    <div className={`app${printMode ? " print-mode" : ""}`}>
-      <style>{CSS}</style>
+return (
+<div className={`app${printMode ? " print-mode" : ""}`}>
+<style>{CSS}</style>
       <header className="hdr">
         <div className="logo">Voyage<em>IA</em></div>
         <div className="hdr-trip">{TRIP.destination} · {TRIP.duration} jours · {TRIP.travelers} adultes · {TRIP.budget}</div>
