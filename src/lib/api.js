@@ -1,5 +1,4 @@
 export async function generateTrip(payload) {
-
 const response = await fetch("/.netlify/functions/generate-trip", {
 method: "POST",
 headers: {
@@ -8,16 +7,14 @@ headers: {
 body: JSON.stringify(payload)
 });
 
+const data = await response.json().catch(() => ({}));
+
 if (!response.ok) {
-let message = "Erreur pendant la génération du guide.";
-
-try {
-const data = await response.json();
-if (data?.error) message = data.error;
-} catch (_) {}
-
-throw new Error(message);
+throw new Error(
+data.error || data.details || data.raw || "Erreur pendant la génération du guide."
+);
 }
 
-return response.json();
+return data;
 }
+
