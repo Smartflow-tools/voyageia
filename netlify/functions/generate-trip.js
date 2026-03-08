@@ -181,7 +181,16 @@ guide = JSON.parse(text);
 const start = text.indexOf("{");
 const end = text.lastIndexOf("}") + 1;
 
-const jsonString = text.slice(start, end);
+if (start === -1 || end === -1) {
+throw new Error("Aucun JSON trouvé dans la réponse IA");
+}
+
+let jsonString = text.slice(start, end);
+
+// nettoyage supplémentaire
+jsonString = jsonString
+.replace(/\n/g, " ")
+.replace(/\r/g, " ");
 
 guide = JSON.parse(jsonString);
 }
