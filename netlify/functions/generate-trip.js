@@ -195,6 +195,13 @@ jsonString = jsonString
 try {
 guide = JSON.parse(jsonString);
 } catch (e2) {
+const match = String(e2.message).match(/position (\d+)/);
+const pos = match ? Number(match[1]) : 0;
+
+const startPreview = Math.max(0, pos - 120);
+const endPreview = Math.min(jsonString.length, pos + 120);
+const preview = jsonString.slice(startPreview, endPreview);
+
 return {
 statusCode: 500,
 headers: {
@@ -202,10 +209,9 @@ headers: {
 },
 body: JSON.stringify({
 error: e2.message,
-raw: jsonString.slice(0, 4000)
+preview
 })
 };
-}
 }
 
 return {
