@@ -1134,7 +1134,7 @@ renderTab()
       case "notes": return <NotesTab/>;
       default: return null;
     }
-  }
+  };
 
   return (
     <div className={`app${printMode ? " print-mode" : ""}`}>
