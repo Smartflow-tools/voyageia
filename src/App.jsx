@@ -1163,7 +1163,11 @@ renderTab()
       {!printMode && (
         <nav className="nav">
           {TABS.map(t=>(
-            <button key={t.id} className={`ntab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>
+            <button
+              key={t.id} 
+              className={`ntab ${tab === t.id ? "active" : ""}`} 
+              onClick={()=>setTab(t.id)}
+            >
               {t.icon} {t.label}
             </button>
           ))}
@@ -1177,9 +1181,13 @@ renderTab()
               <div style={{fontFamily:"Playfair Display,serif",fontSize:48,fontStyle:"italic",color:"var(--gold)"}}>Maroc</div>
               <div style={{fontSize:13,color:"var(--muted)",marginTop:8}}>7 jours · 2 adultes · Confort · {TRIP.departureCity} → {TRIP.destination}</div>
             </div>
-            {TRIP.itinerary.map(d=><DayCard key={d.day} day={d}/>)}
-          </div>
-        ) : renderTab()}
+            {TRIP.itinerary.map((d) => (
+              <DayCard key={d.day} day={d} />
+          ))}
+        </div>
+      ) : (
+        renderTab()
+      )}
       </main>
     </div>
   );
