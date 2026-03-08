@@ -154,3 +154,57 @@ content: prompt
 })
 });
 
+const data = await response.json();
+
+if (!response.ok) {
+return {
+statusCode: 500,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+error: data.error?.message || "Erreur API Anthropic"
+})
+};
+}
+
+const text = data.content[0].text;
+
+let guide;
+
+try {
+guide = JSON.parse(text);
+} catch (e) {
+return {
+statusCode: 500,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+error: "Réponse IA non JSON."
+})
+};
+}
+
+return {
+statusCode: 200,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify(guide)
+};
+
+} catch (error) {
+
+return {
+statusCode: 500,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+error: error.message
+})
+};
+
+}
+};
