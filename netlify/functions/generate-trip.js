@@ -114,16 +114,6 @@ Réponds avec un JSON strict contenant exactement cette structure :
 "electricity": { "icon": "🔌", "label": "Électricité", "value": "string" },
 "emergency": { "icon": "🆘", "label": "Urgences", "value": "string" }
 },
-"checklist": {
-"documents": { "icon": "📋", "label": "Documents", "items": [] },
-"clothing": { "icon": "👕", "label": "Vêtements", "items": [] },
-"health": { "icon": "💊", "label": "Santé", "items": [] },
-"tech": { "icon": "📱", "label": "Tech", "items": [] },
-"misc": { "icon": "🎒", "label": "Divers", "items": [] }
-},
-"photoSpots": [],
-"phrasebook": [],
-"reminders": [],
 "budgetItems": []
 }
 
