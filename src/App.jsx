@@ -1178,7 +1178,7 @@ renderTab()
         {printMode ? (
           <div>
             <div style={{textAlign:"center",padding:"20px 0 32px",borderBottom:"2px solid var(--border)"}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:48,fontStyle:"italic",color:"var(--gold)"}}>Maroc</div>
+              <div style={{fontFamily:"Playfair Display,serif",fontSize:48,fontStyle:"italic",color:"var(--gold)"}}>{TRIP.destination}</div>
               <div style={{fontSize:13,color:"var(--muted)",marginTop:8}}>7 jours · 2 adultes · Confort · {TRIP.departureCity} → {TRIP.destination}</div>
             </div>
             {TRIP.itinerary.map((d) => (
