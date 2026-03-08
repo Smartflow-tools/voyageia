@@ -1134,10 +1134,10 @@ renderTab()
       case "notes": return <NotesTab/>;
       default: return null;
     }
-  };
+  }
 
   return (
-    <div className={`app${printMode?" print-mode":""}`}>
+    <div className={`app${printMode ? " print-mode" : ""}`}>
       <style>{CSS}</style>
       <header className="hdr">
         <div className="logo">Voyage<em>IA</em></div>
