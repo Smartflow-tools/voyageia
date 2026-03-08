@@ -47,29 +47,19 @@ body: JSON.stringify({ error: "Clé API Anthropic manquante côté serveur." })
 }
 
 const prompt = `
-Tu génères un guide de voyage premium en JSON strict.
-Réponds uniquement avec un JSON valide.
-Aucun markdown. Aucun texte avant ou après le JSON.
+Crée un guide de voyage en JSON valide uniquement.
 
-Contexte utilisateur :
-- destination: ${destination}
-- ville de départ: ${departureCity}
-- durée: ${durationDays} jours
-- voyageurs: ${travelers}
-- budget: ${budgetLevel}
-- style: ${travelStyle}
-- type de voyage: ${tripType}
-- mois: ${month}
-- langue: ${language}
+Destination: ${destination}
+Ville de départ: ${departureCity}
+Durée: ${durationDays} jours
+Voyageurs: ${travelers}
+Budget: ${budgetLevel}
+Style: ${travelStyle}
+Type: ${tripType}
+Mois: ${month}
+Langue: ${language}
 
-Contraintes :
-- Le résultat doit être réaliste, cohérent, utile et vendable.
-- Tous les textes doivent être écrits en ${language}.
-- L’itinéraire doit contenir exactement ${durationDays} jours.
-- Si une information précise est incertaine, reste utile mais prudent.
-- Si une URL exacte n’est pas certaine, utilise une URL de recherche générique.
-- Réponds exactement avec cette structure JSON :
-
+Réponds avec un JSON strict contenant exactement cette structure :
 {
 "destination": "string",
 "country": "string",
@@ -95,91 +85,24 @@ Contraintes :
 "highlight": "string"
 }
 ],
-"hotels": [
-{
-"city": "string",
-"name": "string",
-"type": "string",
-"stars": number,
-"priceRange": "string",
-"description": "string",
-"bookingUrl": "string",
-"tags": ["string"]
-}
-],
-"restaurants": [
-{
-"city": "string",
-"name": "string",
-"cuisine": "string",
-"price": "string",
-"must": "string",
-"address": "string",
-"tip": "string"
-}
-],
-"health": {
-"vaccines": [
-{
-"name": "string",
-"required": false,
-"recommended": true,
-"note": "string"
-}
-],
-"pharmacies": [
-{
-"city": "string",
-"name": "string",
-"address": "string",
-"phone": "string",
-"hours": "string"
-}
-],
-"hospitals": [
-{
-"city": "string",
-"name": "string",
-"phone": "string",
-"type": "string"
-}
-],
-"tips": ["string"]
-},
+"hotels": [],
+"restaurants": [],
+"health": { "vaccines": [], "pharmacies": [], "hospitals": [], "tips": [] },
 "carbon": {
 "flightCO2": number,
 "localTransportCO2": number,
 "accommodationCO2": number,
 "totalPerPerson": number,
-"equivalences": [
-{
-"label": "string",
-"value": number
-}
-],
-"offsets": [
-{
-"name": "string",
-"url": "string",
-"price": "string",
-"description": "string"
-}
-]
+"equivalences": [],
+"offsets": []
 },
 "family": {
 "suitable": true,
 "minAge": number,
-"activities": [
-{
-"name": "string",
-"city": "string",
-"ageMin": number,
-"description": "string"
-}
-],
+"activities": [],
 "strollerAccessibility": "string",
-"familyHotels": ["string"],
-"tips": ["string"]
+"familyHotels": [],
+"tips": []
 },
 "practicalInfo": {
 "visa": { "icon": "🛂", "label": "Visa", "value": "string" },
@@ -192,46 +115,23 @@ Contraintes :
 "emergency": { "icon": "🆘", "label": "Urgences", "value": "string" }
 },
 "checklist": {
-"documents": { "icon": "📋", "label": "Documents", "items": ["string"] },
-"clothing": { "icon": "👕", "label": "Vêtements", "items": ["string"] },
-"health": { "icon": "💊", "label": "Santé", "items": ["string"] },
-"tech": { "icon": "📱", "label": "Tech", "items": ["string"] },
-"misc": { "icon": "🎒", "label": "Divers", "items": ["string"] }
+"documents": { "icon": "📋", "label": "Documents", "items": [] },
+"clothing": { "icon": "👕", "label": "Vêtements", "items": [] },
+"health": { "icon": "💊", "label": "Santé", "items": [] },
+"tech": { "icon": "📱", "label": "Tech", "items": [] },
+"misc": { "icon": "🎒", "label": "Divers", "items": [] }
 },
-"photoSpots": [
-{
-"city": "string",
-"spot": "string",
-"time": "string",
-"tip": "string"
+"photoSpots": [],
+"phrasebook": [],
+"reminders": [],
+"budgetItems": []
 }
-],
-"phrasebook": [
-{
-"fr": "string",
-"local": "string",
-"phonetic": "string",
-"category": "string"
-}
-],
-"reminders": [
-{
-"timing": "string",
-"tasks": ["string"]
-}
-],
-"budgetItems": [
-{
-"category": "string",
-"icon": "string",
-"low": number,
-"mid": number,
-"high": number,
-"unit": "string",
-"note": "string"
-}
-]
-}
+
+Important :
+- JSON valide uniquement
+- exactement ${durationDays} objets dans itinerary
+- pas de markdown
+- pas de texte avant ou après
 `;
 
 const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -242,9 +142,9 @@ headers: {
 "anthropic-version": "2023-06-01"
 },
 body: JSON.stringify({
-model: "claude-sonnet-4-6",
-max_tokens: 12000,
-temperature: 0.4,
+model: "claude-3-haiku-20240307",
+max_tokens: 2500,
+temperature: 0.3,
 messages: [
 {
 role: "user",
@@ -253,58 +153,4 @@ content: prompt
 ]
 })
 });
-
-if (!response.ok) {
-const details = await response.text();
-return {
-statusCode: response.status,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: "Erreur Anthropic",
-details
-})
-};
-}
-
-const data = await response.json();
-const text = data?.content?.[0]?.text || "";
-
-let trip;
-try {
-trip = JSON.parse(text);
-} catch (e) {
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: "Réponse IA invalide (JSON non lisible).",
-raw: text
-})
-};
-}
-
-return {
-statusCode: 200,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify(trip)
-};
-} catch (error) {
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: "Erreur serveur",
-details: error.message
-})
-};
-}
-};
 
