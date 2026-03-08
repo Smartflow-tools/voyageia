@@ -1117,5 +1117,3 @@ renderTab()
 </div>
 );
 }
-
-export default App;
