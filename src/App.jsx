@@ -1191,4 +1191,3 @@ renderTab()
       </main>
     </div>
   );
-}
