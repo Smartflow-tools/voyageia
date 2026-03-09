@@ -30,7 +30,9 @@ statusCode: 400,
 headers: {
 "Content-Type": "application/json"
 },
-body: JSON.stringify({ error: "Destination manquante." })
+body: JSON.stringify({
+error: "Destination manquante."
+})
 };
 }
 
@@ -49,19 +51,20 @@ error: "Clé API Anthropic manquante côté serveur."
 }
 
 const prompt = `
-Crée un guide de voyage en JSON valide uniquement.
+Create a travel guide and return ONLY valid JSON.
 
-Destination: ${destination}
-Ville de départ: ${departureCity}
-Durée: ${durationDays} jours
-Voyageurs: ${travelers}
-Budget: ${budgetLevel}
-Style: ${travelStyle}
-Type: ${tripType}
-Mois: ${month}
-Langue: ${language}
+User context:
+- destination: ${destination}
+- departure city: ${departureCity}
+- duration: ${durationDays} days
+- travelers: ${travelers}
+- budget: ${budgetLevel}
+- style: ${travelStyle}
+- trip type: ${tripType}
+- month: ${month}
+- language: ${language}
 
-Réponds avec un JSON strict contenant exactement cette structure :
+Return EXACTLY this JSON structure:
 {
 "destination": "string",
 "country": "string",
@@ -87,50 +90,41 @@ Réponds avec un JSON strict contenant exactement cette structure :
 "highlight": "string"
 }
 ],
-"hotels": [],
-"restaurants": [],
-"health": { "vaccines": [], "pharmacies": [], "hospitals": [], "tips": [] },
-"carbon": {
-"flightCO2": number,
-"localTransportCO2": number,
-"accommodationCO2": number,
-"totalPerPerson": number,
-"equivalences": [],
-"offsets": []
-},
-"family": {
-"suitable": true,
-"minAge": number,
-"activities": [],
-"strollerAccessibility": "string",
-"familyHotels": [],
-"tips": []
-},
-"practicalInfo": {
-"visa": { "icon": "🛂", "label": "Visa", "value": "string" },
-"currency": { "icon": "💰", "label": "Monnaie", "value": "string" },
-"language": { "icon": "🗣️", "label": "Langue", "value": "string" },
-"transport": { "icon": "🚌", "label": "Transport", "value": "string" },
-"safety": { "icon": "🛡️", "label": "Sécurité", "value": "string" },
-"health": { "icon": "💊", "label": "Santé", "value": "string" },
-"electricity": { "icon": "🔌", "label": "Électricité", "value": "string" },
-"emergency": { "icon": "🆘", "label": "Urgences", "value": "string" }
-},
-"budgetItems": []
+"hotels": [
+{
+"city": "string",
+"name": "string",
+"type": "string",
+"stars": number,
+"priceRange": "string",
+"description": "string",
+"tags": ["string"]
+}
+],
+"restaurants": [
+{
+"city": "string",
+"name": "string",
+"cuisine": "string",
+"price": "string",
+"must": "string",
+"address": "string",
+"tip": "string"
+}
+]
 }
 
-Important :
-- JSON strict RFC8259
-- JSON valide uniquement
-- exactement ${durationDays} objets dans itinerary
-- aucune explication
-- aucun markdown
-- aucun texte avant ou après le JSON
-- pas d'emojis
-- uniquement caractères ASCII
-- pas d'apostrophe simple dans les valeurs
-- remplacer les apostrophes par rien ou reformuler la phrase
-- toutes les valeurs texte doivent tenir sur une seule ligne
+Rules:
+- Strict RFC8259 JSON only
+- No markdown
+- No explanation before or after JSON
+- Exactly ${durationDays} objects in itinerary
+- Use only ASCII characters
+- No emojis
+- No apostrophes in values
+- All values must stay on one line
+- All text must be written in ${language}
+- Hotels and restaurants arrays can contain 3 to 6 items
 `;
 
 const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -142,8 +136,8 @@ headers: {
 },
 body: JSON.stringify({
 model: "claude-haiku-4-5-20251001",
-max_tokens: 2500,
-temperature: 0.3,
+max_tokens: 2200,
+temperature: 0.2,
 messages: [
 {
 role: "user",
@@ -208,18 +202,16 @@ preview: cleanedText.slice(0, 500)
 }
 
 let jsonString = cleanedText.slice(start, end);
-jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ").replace(/[^\x00-\x7F]/g, "").replace(/'/g, "").replace(/\"/g, '"');
-jsonString = jsonString.replace(/":\s*"([^"]*)"/g, (m, p1) => {
-return '": "' + p1.replace(/"/g, "") + '"';
-});
+
+jsonString = jsonString
+.replace(/\n/g, " ")
+.replace(/\r/g, " ")
+.replace(/\t/g, " ")
+.replace(/[^\x00-\x7F]/g, "")
+.replace(/'/g, "");
 
 try {
 guide = JSON.parse(jsonString);
-guide.health = guide.health || {};
-guide.carbon = guide.carbon || {};
-guide.family = guide.family || {};
-guide.practicalInfo = guide.practicalInfo || {};
-guide.budgetItems = guide.budgetItems || [];
 } catch (e2) {
 const match = String(e2.message).match(/position (\d+)/);
 const pos = match ? Number(match[1]) : 0;
@@ -239,6 +231,77 @@ preview
 };
 }
 }
+
+// Normalisation / sécurisation
+guide = guide || {};
+
+guide.destination = guide.destination || destination;
+guide.country = guide.country || "";
+guide.duration = Number(guide.duration || durationDays);
+guide.departureCity = guide.departureCity || departureCity;
+guide.travelers = Number(guide.travelers || travelers);
+guide.style = guide.style || travelStyle;
+guide.budget = guide.budget || budgetLevel;
+guide.summary = guide.summary || "";
+guide.bestPeriod = guide.bestPeriod || "";
+guide.cities = Array.isArray(guide.cities) ? guide.cities : [];
+guide.flightOrigin = guide.flightOrigin || departureCity.slice(0, 3).toUpperCase();
+guide.flightDest = guide.flightDest || destination.slice(0, 3).toUpperCase();
+guide.distanceKm = Number(guide.distanceKm || 0);
+
+guide.itinerary = Array.isArray(guide.itinerary) ? guide.itinerary : [];
+guide.hotels = Array.isArray(guide.hotels) ? guide.hotels : [];
+guide.restaurants = Array.isArray(guide.restaurants) ? guide.restaurants : [];
+
+// Champs optionnels vides pour ne pas casser le front actuel
+guide.health = guide.health || {
+vaccines: [],
+pharmacies: [],
+hospitals: [],
+tips: []
+};
+
+guide.carbon = guide.carbon || {
+flightCO2: 0,
+localTransportCO2: 0,
+accommodationCO2: 0,
+totalPerPerson: 0,
+equivalences: [],
+offsets: []
+};
+
+guide.family = guide.family || {
+suitable: false,
+minAge: 0,
+activities: [],
+strollerAccessibility: "",
+familyHotels: [],
+tips: []
+};
+
+guide.practicalInfo = guide.practicalInfo || {
+visa: { icon: "VISA", label: "Visa", value: "" },
+currency: { icon: "MONEY", label: "Monnaie", value: "" },
+language: { icon: "LANG", label: "Langue", value: "" },
+transport: { icon: "BUS", label: "Transport", value: "" },
+safety: { icon: "SAFE", label: "Securite", value: "" },
+health: { icon: "HEALTH", label: "Sante", value: "" },
+electricity: { icon: "ELEC", label: "Electricite", value: "" },
+emergency: { icon: "SOS", label: "Urgences", value: "" }
+};
+
+guide.checklist = guide.checklist || {
+documents: { icon: "DOC", label: "Documents", items: [] },
+clothing: { icon: "CLOTH", label: "Vetements", items: [] },
+health: { icon: "HEALTH", label: "Sante", items: [] },
+tech: { icon: "TECH", label: "Tech", items: [] },
+misc: { icon: "MISC", label: "Divers", items: [] }
+};
+
+guide.photoSpots = Array.isArray(guide.photoSpots) ? guide.photoSpots : [];
+guide.phrasebook = Array.isArray(guide.phrasebook) ? guide.phrasebook : [];
+guide.reminders = Array.isArray(guide.reminders) ? guide.reminders : [];
+guide.budgetItems = Array.isArray(guide.budgetItems) ? guide.budgetItems : [];
 
 return {
 statusCode: 200,
