@@ -208,6 +208,9 @@ jsonString = jsonString
 .replace(/\r/g, " ")
 .replace(/\t/g, " ")
 .replace(/[^\x00-\x7F]/g, "")
+.replace(/,\s*]/g, "]")
+.replace(/,\s*}/g, "}")
+.replace(/}\s*{/g, "},{")
 .replace(/'/g, "");
 
 try {
