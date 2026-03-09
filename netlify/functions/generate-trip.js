@@ -51,7 +51,7 @@ headers: {
 },
 body: JSON.stringify({
 model: "claude-haiku-4-5-20251001",
-max_tokens: 2200,
+max_tokens: 2600,
 temperature: 0.2,
 messages: [
 {
@@ -115,14 +115,13 @@ month,
 language
 }) {
 return `
-You are creating a travel guide.
+You are creating a premium travel guide.
 
 Return ONLY plain text using the exact field markers below.
 Do NOT return JSON.
 Do NOT use markdown.
 Do NOT add commentary before or after.
 Write all content in ${language}.
-Use simple ASCII punctuation only.
 
 USER INPUT
 DESTINATION: ${destination}
@@ -150,17 +149,12 @@ FLIGHT_ORIGIN: ...
 FLIGHT_DEST: ...
 DISTANCE_KM: ...
 
+WEATHER_SUMMARY: ...
+TEMPERATURE_RANGE: ...
+WEATHER_TIPS: ...
+
 ITINERARY_START
 DAY: 1
-CITY: ...
-TITLE: ...
-MORNING: ...
-AFTERNOON: ...
-EVENING: ...
-HIGHLIGHT: ...
-DAY_END
-
-DAY: 2
 CITY: ...
 TITLE: ...
 MORNING: ...
@@ -194,10 +188,19 @@ TIP: ...
 RESTAURANT_END
 RESTAURANTS_END
 
+PRACTICAL_INFO_START
+VISA: ...
+CURRENCY: ...
+LANGUAGE_INFO: ...
+TRANSPORT: ...
+SAFETY: ...
+PRACTICAL_INFO_END
+
 RULES
 - Exactly ${durationDays} days in itinerary
-- 3 to 5 hotels total
-- 3 to 6 restaurants total
+- Exactly 4 hotels
+- Exactly 5 restaurants
+- Restaurants must be real and destination-specific
 - Keep every field on a single line
 - No bullets
 - No markdown
@@ -207,21 +210,19 @@ RULES
 }
 
 function parseStructuredGuide(text, defaults) {
-const normalized = text
-.replace(/\r/g, "")
-.replace(/[“”]/g, '"')
-.replace(/[‘’]/g, "'")
-.trim();
+const normalized = text.replace(/\r/g, "").trim();
 
 const header = extractHeaderFields(normalized);
 
 const itineraryBlock = extractBlock(normalized, "ITINERARY_START", "ITINERARY_END");
 const hotelsBlock = extractBlock(normalized, "HOTELS_START", "HOTELS_END");
 const restaurantsBlock = extractBlock(normalized, "RESTAURANTS_START", "RESTAURANTS_END");
+const practicalBlock = extractBlock(normalized, "PRACTICAL_INFO_START", "PRACTICAL_INFO_END");
 
 const itinerary = parseItinerary(itineraryBlock, defaults.durationDays);
 const hotels = parseHotels(hotelsBlock);
 const restaurants = parseRestaurants(restaurantsBlock);
+const practicalInfo = parsePracticalInfo(practicalBlock);
 
 return {
 destination: header.DESTINATION || defaults.destination,
@@ -239,9 +240,15 @@ header.FLIGHT_ORIGIN || defaults.departureCity.slice(0, 3).toUpperCase(),
 flightDest:
 header.FLIGHT_DEST || defaults.destination.slice(0, 3).toUpperCase(),
 distanceKm: toNumber(header.DISTANCE_KM, 0),
+weather: {
+summary: header.WEATHER_SUMMARY || "",
+temperatureRange: header.TEMPERATURE_RANGE || "",
+tips: header.WEATHER_TIPS || ""
+},
 itinerary,
 hotels,
-restaurants
+restaurants,
+practicalInfo
 };
 }
 
@@ -260,7 +267,10 @@ const keys = [
 "CITIES",
 "FLIGHT_ORIGIN",
 "FLIGHT_DEST",
-"DISTANCE_KM"
+"DISTANCE_KM",
+"WEATHER_SUMMARY",
+"TEMPERATURE_RANGE",
+"WEATHER_TIPS"
 ];
 
 for (const key of keys) {
@@ -297,8 +307,7 @@ const rawDays = block
 .map((part) => part.trim())
 .filter(Boolean);
 
-const parsed = rawDays.map((part, index) => {
-return {
+const parsed = rawDays.map((part, index) => ({
 day: toNumber(extractSingleField(part, "DAY"), index + 1),
 city: extractSingleField(part, "CITY"),
 title: extractSingleField(part, "TITLE"),
@@ -306,8 +315,7 @@ morning: extractSingleField(part, "MORNING"),
 afternoon: extractSingleField(part, "AFTERNOON"),
 evening: extractSingleField(part, "EVENING"),
 highlight: extractSingleField(part, "HIGHLIGHT")
-};
-});
+}));
 
 if (!parsed.length) {
 return buildFallbackItinerary(expectedDays);
@@ -364,6 +372,26 @@ address: extractSingleField(part, "ADDRESS"),
 tip: extractSingleField(part, "TIP")
 }))
 .filter((restaurant) => restaurant.name);
+}
+
+function parsePracticalInfo(block) {
+if (!block) {
+return {
+visa: "",
+currency: "",
+language: "",
+transport: "",
+safety: ""
+};
+}
+
+return {
+visa: extractSingleField(block, "VISA"),
+currency: extractSingleField(block, "CURRENCY"),
+language: extractSingleField(block, "LANGUAGE_INFO"),
+transport: extractSingleField(block, "TRANSPORT"),
+safety: extractSingleField(block, "SAFETY")
+};
 }
 
 function splitPipeList(value) {
