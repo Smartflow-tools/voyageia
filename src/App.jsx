@@ -89,19 +89,82 @@ setOpenDays((prev) => ({
 }));
 }
 
+function buildGoogleMapsLink(query) {
+return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+}
+
+function buildSkyscannerLink() {
+const origin = trip?.flightOrigin || departureCity || "PAR";
+const dest = trip?.flightDest || destination || "";
+return `https://www.skyscanner.fr/transport/vols/${encodeURIComponent(
+origin
+)}/${encodeURIComponent(dest)}/`;
+}
+
+function buildGoogleFlightsLink() {
+const origin = trip?.flightOrigin || departureCity || "PAR";
+const dest = trip?.flightDest || destination || "";
+return `https://www.google.com/travel/flights?q=${encodeURIComponent(
+`flights ${origin} to ${dest}`
+)}`;
+}
+
+function estimateBudget() {
+const level = String(trip?.budget || budgetLevel).toLowerCase();
+const days = Number(trip?.duration || durationDays || 7);
+const pax = Number(trip?.travelers || travelers || 2);
+
+let dailyPerPerson = 0;
+if (level.includes("budget")) dailyPerPerson = 80;
+else if (level.includes("luxe")) dailyPerPerson = 260;
+else dailyPerPerson = 150;
+
+const total = days * pax * dailyPerPerson;
+return `${total.toLocaleString("fr-FR")} € estimés`;
+}
+
 function renderOverview() {
 if (!trip) return null;
 
 return (
+<div style={{ display: "grid", gap: 18 }}>
+<div style={styles.heroInfoGrid}>
+<StatCard label="Destination" value={trip.destination || destination} />
+<StatCard label="Durée" value={`${trip.duration || durationDays} jours`} />
+<StatCard label="Voyageurs" value={`${trip.travelers || travelers}`} />
+<StatCard label="Budget" value={trip.budget || budgetLevel} />
+<StatCard label="Période" value={trip.bestPeriod || "Non précisée"} />
+<StatCard label="Budget estimatif" value={estimateBudget()} />
+</div>
+
 <div style={styles.grid2}>
 <InfoCard title="Résumé" value={trip.summary || "Résumé non disponible."} icon="✦" />
-<InfoCard title="Meilleure période" value={trip.bestPeriod || "Non précisée"} icon="☀️" />
-<InfoCard title="Villes" value={(trip.cities || []).join(" • ") || "Non précisées"} icon="📍" />
-<InfoCard title="Vol" value={`${trip.flightOrigin || "-"} → ${trip.flightDest || "-"}`} icon="✈️" />
-<InfoCard title="Visa" value={trip.practicalInfo?.visa || "Non précisé"} icon="🛂" />
-<InfoCard title="Monnaie" value={trip.practicalInfo?.currency || "Non précisée"} icon="💰" />
-<InfoCard title="Transport" value={trip.practicalInfo?.transport || "Non précisé"} icon="🚕" />
-<InfoCard title="Sécurité" value={trip.practicalInfo?.safety || "Non précisée"} icon="🛡️" />
+<InfoCard
+title="Villes"
+value={(trip.cities || []).join(" • ") || "Non précisées"}
+icon="📍"
+/>
+<InfoCard
+title="Visa"
+value={trip.practicalInfo?.visa || "Non précisé"}
+icon="🛂"
+/>
+<InfoCard
+title="Monnaie"
+value={trip.practicalInfo?.currency || "Non précisée"}
+icon="💰"
+/>
+<InfoCard
+title="Transport"
+value={trip.practicalInfo?.transport || "Non précisé"}
+icon="🚕"
+/>
+<InfoCard
+title="Sécurité"
+value={trip.practicalInfo?.safety || "Non précisée"}
+icon="🛡️"
+/>
+</div>
 </div>
 );
 }
@@ -124,7 +187,9 @@ return (
 </div>
 <div>
 <div style={styles.dayCity}>{day.city || "Étape"}</div>
-<div style={styles.dayTitle}>{day.title || `Jour ${day.day || index + 1}`}</div>
+<div style={styles.dayTitle}>
+{day.title || `Jour ${day.day || index + 1}`}
+</div>
 {day.highlight ? (
 <div style={styles.dayHighlight}>✦ {day.highlight}</div>
 ) : null}
@@ -147,52 +212,6 @@ return (
 );
 }
 
-function renderHotels() {
-if (!trip?.hotels?.length) {
-return <EmptyBlock text="Aucun hôtel disponible." />;
-}
-
-return (
-<div style={styles.cardGrid}>
-{trip.hotels.map((hotel, index) => (
-<div key={index} style={styles.infoCard}>
-<div style={styles.cardTopMeta}>🏨 {hotel.city || "Ville"}</div>
-<div style={styles.cardTitle}>{hotel.name || "Hôtel"}</div>
-<div style={styles.hotelMeta}>
-<span>{hotel.type || "Hébergement"}</span>
-{hotel.stars ? <span>{"★".repeat(hotel.stars)}</span> : null}
-</div>
-<div style={styles.priceTag}>{hotel.priceRange || "Tarif non précisé"}</div>
-<p style={styles.cardText}>{hotel.description || "Description non disponible."}</p>
-
-{hotel.tags?.length ? (
-<div style={styles.tagsWrap}>
-{hotel.tags.map((tag, i) => (
-<span key={i} style={styles.tag}>
-{tag}
-</span>
-))}
-</div>
-) : null}
-
-{trip.destination ? (
-<a
-href={`https://www.google.com/maps/search/${encodeURIComponent(
-`${hotel.name || "hotel"} ${hotel.city || trip.destination}`
-)}`}
-target="_blank"
-rel="noopener noreferrer"
-style={styles.linkButton}
->
-Voir sur Google Maps
-</a>
-) : null}
-</div>
-))}
-</div>
-);
-}
-
 function renderRestaurants() {
 if (!trip?.restaurants?.length) {
 return <EmptyBlock text="Aucun restaurant disponible." />;
@@ -201,29 +220,76 @@ return <EmptyBlock text="Aucun restaurant disponible." />;
 return (
 <div style={styles.cardGrid}>
 {trip.restaurants.map((restaurant, index) => (
-<div key={index} style={styles.infoCard}>
-<div style={styles.cardTopMeta}>🍽️ {restaurant.city || "Ville"}</div>
-<div style={styles.cardTitle}>{restaurant.name || "Restaurant"}</div>
-<div style={styles.hotelMeta}>
-<span>{restaurant.cuisine || "Cuisine"}</span>
-<span>{restaurant.price || ""}</span>
+<div key={index} style={styles.premiumCard}>
+<div style={styles.cardTopRow}>
+<div style={styles.cardTopMeta}>🍽️ {restaurant.city || trip?.destination || "Ville"}</div>
+<span style={styles.priceChip}>{restaurant.price || "€€"}</span>
 </div>
-<p style={styles.cardText}>
-<strong style={{ color: "#f3d27a" }}>À goûter :</strong>{" "}
-{restaurant.must || "Suggestion non précisée."}
-</p>
-{restaurant.address ? <p style={styles.smallMuted}>📍 {restaurant.address}</p> : null}
-{restaurant.tip ? <p style={styles.smallMuted}>💡 {restaurant.tip}</p> : null}
+
+<div style={styles.cardTitleLg}>{restaurant.name || "Restaurant"}</div>
+<div style={styles.subMeta}>{restaurant.cuisine || "Cuisine locale"}</div>
+
+<div style={styles.sectionLine}>
+<span style={styles.sectionLabel}>À goûter</span>
+<p style={styles.cardText}>{restaurant.must || "Spécialité à découvrir."}</p>
+</div>
+
+{restaurant.address ? (
+<p style={styles.smallMuted}>📍 {restaurant.address}</p>
+) : null}
+
+{restaurant.tip ? (
+<p style={styles.tipText}>💡 {restaurant.tip}</p>
+) : null}
 
 <a
-href={`https://www.google.com/maps/search/${encodeURIComponent(
-`${restaurant.name || "restaurant"} ${restaurant.city || trip.destination || ""}`
-)}`}
+href={buildGoogleMapsLink(
+`${restaurant.name || "restaurant"} ${restaurant.city || trip?.destination || destination}`
+)}
 target="_blank"
 rel="noopener noreferrer"
 style={styles.linkButton}
 >
-Voir sur Google Maps
+Voir sur Google Maps ↗
+</a>
+</div>
+))}
+</div>
+);
+}
+
+function renderHotels() {
+if (!trip?.hotels?.length) {
+return <EmptyBlock text="Aucun hôtel disponible." />;
+}
+
+return (
+<div style={styles.cardGrid}>
+{trip.hotels.map((hotel, index) => (
+<div key={index} style={styles.premiumCard}>
+<div style={styles.cardTopRow}>
+<div style={styles.cardTopMeta}>🏨 {hotel.city || "Ville"}</div>
+<span style={styles.priceChip}>{hotel.priceRange || "Tarif non précisé"}</span>
+</div>
+
+<div style={styles.cardTitleLg}>{hotel.name || "Hôtel"}</div>
+<div style={styles.subMeta}>
+{hotel.type || "Hébergement"} {hotel.stars ? `• ${"★".repeat(hotel.stars)}` : ""}
+</div>
+
+<p style={styles.cardText}>
+{hotel.description || "Description non disponible."}
+</p>
+
+<a
+href={buildGoogleMapsLink(
+`${hotel.name || "hotel"} ${hotel.city || trip?.destination || destination}`
+)}
+target="_blank"
+rel="noopener noreferrer"
+style={styles.linkButton}
+>
+Voir sur Google Maps ↗
 </a>
 </div>
 ))}
@@ -238,9 +304,21 @@ return <EmptyBlock text="Aucune météo disponible." />;
 
 return (
 <div style={styles.grid2}>
-<InfoCard title="Aperçu météo" value={trip.weather.summary || "Non disponible"} icon="🌤️" />
-<InfoCard title="Températures" value={trip.weather.temperatureRange || "Non disponible"} icon="🌡️" />
-<InfoCard title="Conseils" value={trip.weather.tips || "Non disponible"} icon="🧳" />
+<InfoCard
+title="Aperçu météo"
+value={trip.weather.summary || "Non disponible"}
+icon="🌤️"
+/>
+<InfoCard
+title="Températures"
+value={trip.weather.temperatureRange || "Non disponible"}
+icon="🌡️"
+/>
+<InfoCard
+title="Conseils"
+value={trip.weather.tips || "Non disponible"}
+icon="🧳"
+/>
 </div>
 );
 }
@@ -248,58 +326,45 @@ return (
 function renderFlights() {
 if (!trip) return null;
 
-const origin = trip.flightOrigin || departureCity || "PAR";
-const dest = trip.flightDest || destination || "";
-const destinationText = trip.destination || destination || "";
-
-const skyscanner = `https://www.skyscanner.fr/transport/vols/${encodeURIComponent(
-origin
-)}/${encodeURIComponent(dest)}/`;
-
-const googleFlights = `https://www.google.com/travel/flights?q=${encodeURIComponent(
-`flights ${origin} to ${dest}`
-)}`;
+const origin = trip?.flightOrigin || departureCity || "PAR";
+const dest = trip?.flightDest || destination || "";
 
 return (
 <div style={styles.grid2}>
-<div style={styles.infoCard}>
-<div style={styles.cardTopMeta}>✈️ Trajet conseillé</div>
-<div style={styles.cardTitle}>{origin} → {dest || destinationText}</div>
+<div style={styles.premiumCard}>
+<div style={styles.cardTopMeta}>✈️ Trajet</div>
+<div style={styles.cardTitleLg}>{origin} → {dest}</div>
 <p style={styles.cardText}>
-Consulte rapidement les options de vols et compare les prix sur plusieurs plateformes.
+Compare les options de vol et ouvre directement les recherches sur les plateformes utiles.
 </p>
-</div>
 
-<div style={styles.infoCard}>
-<div style={styles.cardTopMeta}>🔎 Comparateur</div>
-<div style={styles.cardTitle}>Skyscanner</div>
-<p style={styles.cardText}>
-Recherche rapide des meilleurs vols selon tes dates et ton budget.
-</p>
+<div style={styles.actionsRow}>
 <a
-href={skyscanner}
+href={buildSkyscannerLink()}
 target="_blank"
 rel="noopener noreferrer"
 style={styles.linkButton}
 >
-Voir les vols
+Skyscanner ↗
 </a>
-</div>
 
-<div style={styles.infoCard}>
-<div style={styles.cardTopMeta}>📈 Comparer les prix</div>
-<div style={styles.cardTitle}>Google Flights</div>
-<p style={styles.cardText}>
-Compare les tarifs et regarde facilement les différentes options.
-</p>
 <a
-href={googleFlights}
+href={buildGoogleFlightsLink()}
 target="_blank"
 rel="noopener noreferrer"
-style={styles.linkButton}
+style={styles.secondaryButton}
 >
-Comparer les prix
+Google Flights ↗
 </a>
+</div>
+</div>
+
+<div style={styles.premiumCard}>
+<div style={styles.cardTopMeta}>💡 Conseil</div>
+<div style={styles.cardTitleLg}>Réserver intelligemment</div>
+<p style={styles.cardText}>
+Compare toujours plusieurs horaires, vérifie les bagages inclus et regarde les départs en semaine pour des tarifs souvent plus intéressants.
+</p>
 </div>
 </div>
 );
@@ -309,51 +374,42 @@ function renderMap() {
 if (!trip) return null;
 
 const city = trip.destination || destination;
-const mapCity = `https://www.google.com/maps/search/${encodeURIComponent(city)}`;
-const mapHotels = `https://www.google.com/maps/search/${encodeURIComponent(`hotels in ${city}`)}`;
-const mapRestaurants = `https://www.google.com/maps/search/${encodeURIComponent(`restaurants in ${city}`)}`;
-
 const cityStops = (trip.cities || []).filter(Boolean);
 
 return (
 <div style={{ display: "grid", gap: 16 }}>
 <div style={styles.grid2}>
-<div style={styles.infoCard}>
-<div style={styles.cardTopMeta}>📍 Destination</div>
-<div style={styles.cardTitle}>{city}</div>
-<p style={styles.cardText}>Ouvre directement la destination sur Google Maps.</p>
-<a href={mapCity} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-Ouvrir Google Maps
-</a>
-</div>
-
-<div style={styles.infoCard}>
-<div style={styles.cardTopMeta}>🏨 Hôtels</div>
-<div style={styles.cardTitle}>Voir les hébergements</div>
-<p style={styles.cardText}>Affiche les hôtels à proximité sur la carte.</p>
-<a href={mapHotels} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-Voir les hôtels
-</a>
-</div>
-
-<div style={styles.infoCard}>
-<div style={styles.cardTopMeta}>🍽️ Restaurants</div>
-<div style={styles.cardTitle}>Voir les bonnes adresses</div>
-<p style={styles.cardText}>Affiche les restaurants de la destination sur la carte.</p>
-<a href={mapRestaurants} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
-Voir les restaurants
-</a>
-</div>
+<LinkCard
+title="Destination"
+text="Ouvre directement la destination sur Google Maps."
+icon="📍"
+href={buildGoogleMapsLink(city)}
+button="Ouvrir la destination ↗"
+/>
+<LinkCard
+title="Hôtels"
+text="Voir rapidement les hébergements sur la carte."
+icon="🏨"
+href={buildGoogleMapsLink(`hotels in ${city}`)}
+button="Voir les hôtels ↗"
+/>
+<LinkCard
+title="Restaurants"
+text="Voir les restaurants et les zones les plus animées."
+icon="🍽️"
+href={buildGoogleMapsLink(`restaurants in ${city}`)}
+button="Voir les restaurants ↗"
+/>
 </div>
 
 {cityStops.length ? (
-<div style={styles.infoCard}>
+<div style={styles.premiumCard}>
 <div style={styles.cardTopMeta}>🧭 Étapes du voyage</div>
 <div style={styles.tagsWrap}>
-{cityStops.map((stop, i) => (
+{cityStops.map((stop, index) => (
 <a
-key={i}
-href={`https://www.google.com/maps/search/${encodeURIComponent(stop)}`}
+key={index}
+href={buildGoogleMapsLink(stop)}
 target="_blank"
 rel="noopener noreferrer"
 style={styles.mapChip}
@@ -398,7 +454,8 @@ background: #09090d;
 color: #f4f1ea;
 font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-button, input, select, a { font: inherit; }
+button, input, select { font: inherit; }
+a { text-decoration: none; }
 `}</style>
 
 <div style={styles.bgGlowOne} />
@@ -410,15 +467,14 @@ button, input, select, a { font: inherit; }
 <div style={styles.logo}>VOYAGEIA</div>
 <h1 style={styles.heroTitle}>Ton guide de voyage premium, généré par IA</h1>
 <p style={styles.heroText}>
-Crée un itinéraire élégant, rapide à lire, avec les bonnes étapes,
-des hôtels, des restaurants et des liens utiles pour ton voyage.
+Itinéraire élégant, hôtels, restaurants, vols, carte et infos pratiques dans une seule expérience.
 </p>
 </div>
 
 <div style={styles.headerBadge}>
 {trip
 ? `${trip.destination || destination} · ${trip.duration || durationDays} jours`
-: "Voyages sur mesure"}
+: "Guide haut de gamme"}
 </div>
 </header>
 
@@ -427,7 +483,7 @@ des hôtels, des restaurants et des liens utiles pour ton voyage.
 <Field label="Destination">
 <input
 type="text"
-placeholder="Ex: Japon, Australie, Colombie"
+placeholder="Ex: Tokyo, Rome, Bali, New York"
 value={destination}
 onChange={(e) => setDestination(e.target.value)}
 style={styles.input}
@@ -525,7 +581,7 @@ cursor: loading ? "wait" : "pointer"
 </button>
 
 <div style={styles.formHint}>
-Itinéraire, hôtels, restaurants, météo, carte et vols.
+Un guide plus beau, plus concret, plus vendable.
 </div>
 </div>
 </section>
@@ -534,9 +590,9 @@ Itinéraire, hôtels, restaurants, météo, carte et vols.
 
 {!trip && !loading ? (
 <section style={styles.emptyHero}>
-<div style={styles.emptyHeroTitle}>Commence par choisir une destination</div>
+<div style={styles.emptyHeroTitle}>Choisis une destination et lance la génération</div>
 <div style={styles.emptyHeroText}>
-Exemple : Japon, Islande, Australie, Mexique, Colombie.
+Exemple : Tokyo, Lisbonne, Concarneau, Bali, Rome.
 </div>
 </section>
 ) : null}
@@ -555,6 +611,7 @@ Exemple : Japon, Islande, Australie, Mexique, Colombie.
 <MetaLine label="Voyageurs" value={`${trip.travelers || travelers}`} />
 <MetaLine label="Budget" value={trip.budget || budgetLevel} />
 <MetaLine label="Période" value={trip.bestPeriod || "Non précisée"} />
+<MetaLine label="Estimation" value={estimateBudget()} />
 </div>
 </section>
 
@@ -611,6 +668,28 @@ return (
 );
 }
 
+function LinkCard({ title, text, icon, href, button }) {
+return (
+<div style={styles.premiumCard}>
+<div style={styles.cardTopMeta}>{icon} {title}</div>
+<div style={styles.cardTitleLg}>{title}</div>
+<p style={styles.cardText}>{text}</p>
+<a href={href} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+{button}
+</a>
+</div>
+);
+}
+
+function StatCard({ label, value }) {
+return (
+<div style={styles.statCard}>
+<div style={styles.statLabel}>{label}</div>
+<div style={styles.statValue}>{value}</div>
+</div>
+);
+}
+
 function MetaLine({ label, value }) {
 return (
 <div style={styles.metaLine}>
@@ -656,7 +735,7 @@ right: -60,
 pointerEvents: "none"
 },
 shell: {
-maxWidth: 1180,
+maxWidth: 1200,
 margin: "0 auto",
 padding: "32px 20px 60px",
 position: "relative",
@@ -678,12 +757,12 @@ fontWeight: 700,
 marginBottom: 14
 },
 heroTitle: {
-fontSize: "clamp(32px, 5vw, 56px)",
+fontSize: "clamp(34px, 5vw, 58px)",
 lineHeight: 1.02,
 margin: 0,
 fontFamily: "Georgia, Times New Roman, serif",
 fontWeight: 600,
-maxWidth: 760
+maxWidth: 780
 },
 heroText: {
 marginTop: 16,
@@ -751,11 +830,16 @@ borderRadius: 14,
 padding: "14px 22px",
 fontWeight: 700,
 fontSize: 15,
-boxShadow: "0 10px 24px rgba(216,183,107,0.25)",
-textDecoration: "none",
-display: "inline-flex",
-alignItems: "center",
-justifyContent: "center"
+boxShadow: "0 10px 24px rgba(216,183,107,0.25)"
+},
+secondaryButton: {
+background: "rgba(255,255,255,0.04)",
+color: "#f4f1ea",
+border: "1px solid rgba(255,255,255,0.1)",
+borderRadius: 12,
+padding: "12px 16px",
+fontWeight: 600,
+fontSize: 14
 },
 linkButton: {
 marginTop: 14,
@@ -769,7 +853,8 @@ fontSize: 14,
 textDecoration: "none",
 display: "inline-flex",
 alignItems: "center",
-justifyContent: "center"
+justifyContent: "center",
+width: "fit-content"
 },
 formHint: {
 color: "#a39b8b",
@@ -814,7 +899,7 @@ marginBottom: 10
 },
 tripTitle: {
 margin: 0,
-fontSize: "clamp(30px, 4vw, 48px)",
+fontSize: "clamp(30px, 4vw, 52px)",
 fontFamily: "Georgia, serif",
 lineHeight: 1.05
 },
@@ -876,6 +961,30 @@ background: "rgba(17,17,24,0.86)",
 border: "1px solid rgba(216,183,107,0.12)",
 borderRadius: 24,
 padding: 22
+},
+heroInfoGrid: {
+display: "grid",
+gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+gap: 12
+},
+statCard: {
+background: "#161620",
+border: "1px solid rgba(216,183,107,0.08)",
+borderRadius: 18,
+padding: 16
+},
+statLabel: {
+color: "#bda96e",
+fontSize: 12,
+textTransform: "uppercase",
+letterSpacing: "0.12em",
+marginBottom: 8
+},
+statValue: {
+color: "#f4f1ea",
+fontWeight: 700,
+fontSize: 18,
+lineHeight: 1.4
 },
 dayCard: {
 border: "1px solid rgba(216,183,107,0.10)",
@@ -959,13 +1068,20 @@ lineHeight: 1.7
 },
 grid2: {
 display: "grid",
-gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
 gap: 14
 },
 cardGrid: {
 display: "grid",
-gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
 gap: 14
+},
+premiumCard: {
+background: "#161620",
+border: "1px solid rgba(216,183,107,0.08)",
+borderRadius: 18,
+padding: 18,
+boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
 },
 infoCard: {
 background: "#161620",
@@ -973,53 +1089,60 @@ border: "1px solid rgba(216,183,107,0.08)",
 borderRadius: 18,
 padding: 18
 },
+cardTopRow: {
+display: "flex",
+justifyContent: "space-between",
+alignItems: "center",
+gap: 12,
+marginBottom: 10
+},
 cardTopMeta: {
 color: "#bda96e",
 fontSize: 12,
 textTransform: "uppercase",
 letterSpacing: "0.12em",
+marginBottom: 8
+},
+cardTitleLg: {
+fontSize: 24,
+fontFamily: "Georgia, serif",
+marginBottom: 6
+},
+subMeta: {
+color: "#9f9687",
+fontSize: 14,
+marginBottom: 12
+},
+sectionLine: {
 marginBottom: 10
 },
-cardTitle: {
-fontSize: 22,
-fontFamily: "Georgia, serif",
-marginBottom: 8
+sectionLabel: {
+display: "inline-block",
+color: "#f3d27a",
+fontSize: 12,
+textTransform: "uppercase",
+letterSpacing: "0.1em",
+marginBottom: 6
 },
 cardText: {
 color: "#d7d1c4",
 lineHeight: 1.7,
 fontSize: 14
 },
-hotelMeta: {
-display: "flex",
-justifyContent: "space-between",
-gap: 12,
-color: "#a49c8c",
-fontSize: 13,
-marginBottom: 10
-},
-priceTag: {
+priceChip: {
 display: "inline-block",
 background: "rgba(216,183,107,0.12)",
 color: "#f3d27a",
 borderRadius: 999,
 padding: "6px 10px",
 fontSize: 12,
-marginBottom: 10
+whiteSpace: "nowrap"
 },
 tagsWrap: {
 display: "flex",
 flexWrap: "wrap",
 gap: 8,
-marginTop: 12
-},
-tag: {
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(216,183,107,0.10)",
-borderRadius: 999,
-padding: "6px 10px",
-fontSize: 12,
-color: "#cfc7b7"
+marginTop: 8
 },
 mapChip: {
 background: "rgba(255,255,255,0.05)",
@@ -1035,8 +1158,21 @@ color: "#a49c8c",
 fontSize: 13,
 lineHeight: 1.6
 },
+tipText: {
+color: "#cfc7b7",
+fontSize: 13,
+lineHeight: 1.6,
+marginTop: 8
+},
+actionsRow: {
+display: "flex",
+gap: 10,
+flexWrap: "wrap",
+marginTop: 12
+},
 emptyBlock: {
 color: "#a49c8c",
 padding: "18px 4px"
 }
 };
+
