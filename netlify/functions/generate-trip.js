@@ -205,7 +205,7 @@ preview: cleanedText.slice(0, 500)
 }
 
 let jsonString = cleanedText.slice(start, end);
-jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ");
+jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ").replace(/[^\x00-\x7F]/g, "");
 
 try {
 guide = JSON.parse(jsonString);
