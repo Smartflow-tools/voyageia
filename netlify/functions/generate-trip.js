@@ -42,7 +42,9 @@ statusCode: 500,
 headers: {
 "Content-Type": "application/json"
 },
-body: JSON.stringify({ error: "Clé API Anthropic manquante côté serveur." })
+body: JSON.stringify({
+error: "Clé API Anthropic manquante côté serveur."
+})
 };
 }
 
@@ -153,41 +155,59 @@ headers: {
 "Content-Type": "application/json"
 },
 body: JSON.stringify({
-error: data.error?.message || "Erreur API Anthropic"
+error: data?.error?.message || "Erreur API Anthropic"
 })
 };
 }
 
-let text = data.content[0].text;
+const text = data?.content?.[0]?.text || "";
 
-text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+if (!text) {
+return {
+statusCode: 500,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+error: "Réponse IA vide"
+})
+};
+}
+
+const cleanedText = text
+.replace(/```json/g, "")
+.replace(/```/g, "")
+.trim();
 
 let guide;
 
 try {
-guide = JSON.parse(text);
+guide = JSON.parse(cleanedText);
 } catch (e) {
+const start = cleanedText.indexOf("{");
+const end = cleanedText.lastIndexOf("}") + 1;
 
-const start = text.indexOf("{");
-const end = text.lastIndexOf("}") + 1;
-
-if (start === -1 || end === -1) {
-throw new Error("Aucun JSON trouvé dans la réponse IA");
+if (start === -1 || end === 0) {
+return {
+statusCode: 500,
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+error: "Aucun JSON trouvé dans la réponse IA",
+preview: cleanedText.slice(0, 500)
+})
+};
 }
 
-let jsonString = text.slice(start, end);
-
-// nettoyage supplémentaire
-jsonString = jsonString
-.replace(/\n/g, " ")
-.replace(/\r/g, " ");
+let jsonString = cleanedText.slice(start, end);
+jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ");
 
 try {
 guide = JSON.parse(jsonString);
 } catch (e2) {
 const match = String(e2.message).match(/position (\d+)/);
 const pos = match ? Number(match[1]) : 0;
-
 const startPreview = Math.max(0, pos - 120);
 const endPreview = Math.min(jsonString.length, pos + 120);
 const preview = jsonString.slice(startPreview, endPreview);
@@ -203,6 +223,7 @@ preview
 })
 };
 }
+}
 
 return {
 statusCode: 200,
@@ -211,9 +232,7 @@ headers: {
 },
 body: JSON.stringify(guide)
 };
-
 } catch (error) {
-
 return {
 statusCode: 500,
 headers: {
