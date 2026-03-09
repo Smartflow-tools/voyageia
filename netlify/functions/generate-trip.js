@@ -1,13 +1,7 @@
 exports.handler = async function (event) {
 try {
 if (event.httpMethod !== "POST") {
-return {
-statusCode: 405,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({ error: "Method not allowed" })
-};
+return jsonResponse(405, { error: "Method not allowed" });
 }
 
 const body = JSON.parse(event.body || "{}");
@@ -24,108 +18,29 @@ month = "",
 language = "fr"
 } = body;
 
-if (!destination || !String(destination).trim()) {
-return {
-statusCode: 400,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: "Destination manquante."
-})
-};
+if (!String(destination).trim()) {
+return jsonResponse(400, { error: "Destination manquante." });
 }
 
 const apiKey = process.env.ANTHROPIC_API_KEY;
 
 if (!apiKey) {
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
+return jsonResponse(500, {
 error: "Clé API Anthropic manquante côté serveur."
-})
-};
+});
 }
 
-const prompt = `
-Create a travel guide and return ONLY valid JSON.
-
-User context:
-- destination: ${destination}
-- departure city: ${departureCity}
-- duration: ${durationDays} days
-- travelers: ${travelers}
-- budget: ${budgetLevel}
-- style: ${travelStyle}
-- trip type: ${tripType}
-- month: ${month}
-- language: ${language}
-
-Return EXACTLY this JSON structure:
-{
-"destination": "string",
-"country": "string",
-"duration": number,
-"departureCity": "string",
-"travelers": number,
-"style": "string",
-"budget": "string",
-"summary": "string",
-"bestPeriod": "string",
-"cities": ["string"],
-"flightOrigin": "string",
-"flightDest": "string",
-"distanceKm": number,
-"itinerary": [
-{
-"day": number,
-"city": "string",
-"title": "string",
-"morning": "string",
-"afternoon": "string",
-"evening": "string",
-"highlight": "string"
-}
-],
-"hotels": [
-{
-"city": "string",
-"name": "string",
-"type": "string",
-"stars": number,
-"priceRange": "string",
-"description": "string",
-"tags": ["string"]
-}
-],
-"restaurants": [
-{
-"city": "string",
-"name": "string",
-"cuisine": "string",
-"price": "string",
-"must": "string",
-"address": "string",
-"tip": "string"
-}
-]
-}
-
-Rules:
-- Strict RFC8259 JSON only
-- No markdown
-- No explanation before or after JSON
-- Exactly ${durationDays} objects in itinerary
-- Use only ASCII characters
-- No emojis
-- No apostrophes in values
-- All values must stay on one line
-- All text must be written in ${language}
-- Hotels and restaurants arrays can contain 3 to 6 items
-`;
+const prompt = buildPrompt({
+destination,
+departureCity,
+durationDays,
+travelers,
+budgetLevel,
+travelStyle,
+tripType,
+month,
+language
+});
 
 const response = await fetch("https://api.anthropic.com/v1/messages", {
 method: "POST",
@@ -150,178 +65,332 @@ content: prompt
 const data = await response.json();
 
 if (!response.ok) {
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
+return jsonResponse(500, {
 error: data?.error?.message || "Erreur API Anthropic"
-})
-};
+});
 }
 
 const text = data?.content?.[0]?.text || "";
 
-if (!text) {
+if (!text.trim()) {
+return jsonResponse(500, { error: "Réponse IA vide" });
+}
+
+const guide = parseStructuredGuide(text, {
+destination,
+departureCity,
+durationDays,
+travelers,
+budgetLevel,
+travelStyle
+});
+
+return jsonResponse(200, guide);
+} catch (error) {
+return jsonResponse(500, {
+error: error.message || "Erreur serveur"
+});
+}
+};
+
+function jsonResponse(statusCode, payload) {
 return {
-statusCode: 500,
+statusCode,
 headers: {
 "Content-Type": "application/json"
 },
-body: JSON.stringify({
-error: "Réponse IA vide"
-})
+body: JSON.stringify(payload)
 };
 }
 
-const cleanedText = text
-.replace(/```json/g, "")
-.replace(/```/g, "")
+function buildPrompt({
+destination,
+departureCity,
+durationDays,
+travelers,
+budgetLevel,
+travelStyle,
+tripType,
+month,
+language
+}) {
+return `
+You are creating a travel guide.
+
+Return ONLY plain text using the exact field markers below.
+Do NOT return JSON.
+Do NOT use markdown.
+Do NOT add commentary before or after.
+Write all content in ${language}.
+Use simple ASCII punctuation only.
+
+USER INPUT
+DESTINATION: ${destination}
+DEPARTURE_CITY: ${departureCity}
+DURATION_DAYS: ${durationDays}
+TRAVELERS: ${travelers}
+BUDGET: ${budgetLevel}
+STYLE: ${travelStyle}
+TRIP_TYPE: ${tripType}
+MONTH: ${month}
+
+OUTPUT FORMAT
+
+DESTINATION: ...
+COUNTRY: ...
+DURATION: ...
+DEPARTURE_CITY: ...
+TRAVELERS: ...
+STYLE: ...
+BUDGET: ...
+SUMMARY: ...
+BEST_PERIOD: ...
+CITIES: city1 | city2 | city3
+FLIGHT_ORIGIN: ...
+FLIGHT_DEST: ...
+DISTANCE_KM: ...
+
+ITINERARY_START
+DAY: 1
+CITY: ...
+TITLE: ...
+MORNING: ...
+AFTERNOON: ...
+EVENING: ...
+HIGHLIGHT: ...
+DAY_END
+
+DAY: 2
+CITY: ...
+TITLE: ...
+MORNING: ...
+AFTERNOON: ...
+EVENING: ...
+HIGHLIGHT: ...
+DAY_END
+ITINERARY_END
+
+HOTELS_START
+HOTEL:
+CITY: ...
+NAME: ...
+TYPE: ...
+STARS: ...
+PRICE_RANGE: ...
+DESCRIPTION: ...
+TAGS: tag1 | tag2 | tag3
+HOTEL_END
+HOTELS_END
+
+RESTAURANTS_START
+RESTAURANT:
+CITY: ...
+NAME: ...
+CUISINE: ...
+PRICE: ...
+MUST: ...
+ADDRESS: ...
+TIP: ...
+RESTAURANT_END
+RESTAURANTS_END
+
+RULES
+- Exactly ${durationDays} days in itinerary
+- 3 to 5 hotels total
+- 3 to 6 restaurants total
+- Keep every field on a single line
+- No bullets
+- No markdown
+- No JSON
+- Do not skip any required markers
+`;
+}
+
+function parseStructuredGuide(text, defaults) {
+const normalized = text
+.replace(/\r/g, "")
+.replace(/[“”]/g, '"')
+.replace(/[‘’]/g, "'")
 .trim();
 
-let guide;
+const header = extractHeaderFields(normalized);
 
-try {
-guide = JSON.parse(cleanedText);
-} catch (e) {
-const start = cleanedText.indexOf("{");
-const end = cleanedText.lastIndexOf("}") + 1;
+const itineraryBlock = extractBlock(normalized, "ITINERARY_START", "ITINERARY_END");
+const hotelsBlock = extractBlock(normalized, "HOTELS_START", "HOTELS_END");
+const restaurantsBlock = extractBlock(normalized, "RESTAURANTS_START", "RESTAURANTS_END");
 
-if (start === -1 || end === 0) {
+const itinerary = parseItinerary(itineraryBlock, defaults.durationDays);
+const hotels = parseHotels(hotelsBlock);
+const restaurants = parseRestaurants(restaurantsBlock);
+
 return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: "Aucun JSON trouvé dans la réponse IA",
-preview: cleanedText.slice(0, 500)
-})
+destination: header.DESTINATION || defaults.destination,
+country: header.COUNTRY || "",
+duration: toNumber(header.DURATION, defaults.durationDays),
+departureCity: header.DEPARTURE_CITY || defaults.departureCity,
+travelers: toNumber(header.TRAVELERS, defaults.travelers),
+style: header.STYLE || defaults.travelStyle,
+budget: header.BUDGET || defaults.budgetLevel,
+summary: header.SUMMARY || "",
+bestPeriod: header.BEST_PERIOD || "",
+cities: splitPipeList(header.CITIES),
+flightOrigin:
+header.FLIGHT_ORIGIN || defaults.departureCity.slice(0, 3).toUpperCase(),
+flightDest:
+header.FLIGHT_DEST || defaults.destination.slice(0, 3).toUpperCase(),
+distanceKm: toNumber(header.DISTANCE_KM, 0),
+itinerary,
+hotels,
+restaurants
 };
 }
 
-let jsonString = cleanedText.slice(start, end);
+function extractHeaderFields(text) {
+const fields = {};
+const keys = [
+"DESTINATION",
+"COUNTRY",
+"DURATION",
+"DEPARTURE_CITY",
+"TRAVELERS",
+"STYLE",
+"BUDGET",
+"SUMMARY",
+"BEST_PERIOD",
+"CITIES",
+"FLIGHT_ORIGIN",
+"FLIGHT_DEST",
+"DISTANCE_KM"
+];
 
-jsonString = jsonString
-.replace(/\n/g, " ")
-.replace(/\r/g, " ")
-.replace(/\t/g, " ")
-.replace(/[^\x00-\x7F]/g, "")
-.replace(/,\s*]/g, "]")
-.replace(/,\s*}/g, "}")
-.replace(/}\s*{/g, "},{")
-.replace(/'/g, "");
-
-try {
-guide = JSON.parse(jsonString);
-} catch (e2) {
-const match = String(e2.message).match(/position (\d+)/);
-const pos = match ? Number(match[1]) : 0;
-const startPreview = Math.max(0, pos - 120);
-const endPreview = Math.min(jsonString.length, pos + 120);
-const preview = jsonString.slice(startPreview, endPreview);
-
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: e2.message,
-preview
-})
-};
-}
+for (const key of keys) {
+fields[key] = extractSingleField(text, key);
 }
 
-// Normalisation / sécurisation
-guide = guide || {};
-
-guide.destination = guide.destination || destination;
-guide.country = guide.country || "";
-guide.duration = Number(guide.duration || durationDays);
-guide.departureCity = guide.departureCity || departureCity;
-guide.travelers = Number(guide.travelers || travelers);
-guide.style = guide.style || travelStyle;
-guide.budget = guide.budget || budgetLevel;
-guide.summary = guide.summary || "";
-guide.bestPeriod = guide.bestPeriod || "";
-guide.cities = Array.isArray(guide.cities) ? guide.cities : [];
-guide.flightOrigin = guide.flightOrigin || departureCity.slice(0, 3).toUpperCase();
-guide.flightDest = guide.flightDest || destination.slice(0, 3).toUpperCase();
-guide.distanceKm = Number(guide.distanceKm || 0);
-
-guide.itinerary = Array.isArray(guide.itinerary) ? guide.itinerary : [];
-guide.hotels = Array.isArray(guide.hotels) ? guide.hotels : [];
-guide.restaurants = Array.isArray(guide.restaurants) ? guide.restaurants : [];
-
-// Champs optionnels vides pour ne pas casser le front actuel
-guide.health = guide.health || {
-vaccines: [],
-pharmacies: [],
-hospitals: [],
-tips: []
-};
-
-guide.carbon = guide.carbon || {
-flightCO2: 0,
-localTransportCO2: 0,
-accommodationCO2: 0,
-totalPerPerson: 0,
-equivalences: [],
-offsets: []
-};
-
-guide.family = guide.family || {
-suitable: false,
-minAge: 0,
-activities: [],
-strollerAccessibility: "",
-familyHotels: [],
-tips: []
-};
-
-guide.practicalInfo = guide.practicalInfo || {
-visa: { icon: "VISA", label: "Visa", value: "" },
-currency: { icon: "MONEY", label: "Monnaie", value: "" },
-language: { icon: "LANG", label: "Langue", value: "" },
-transport: { icon: "BUS", label: "Transport", value: "" },
-safety: { icon: "SAFE", label: "Securite", value: "" },
-health: { icon: "HEALTH", label: "Sante", value: "" },
-electricity: { icon: "ELEC", label: "Electricite", value: "" },
-emergency: { icon: "SOS", label: "Urgences", value: "" }
-};
-
-guide.checklist = guide.checklist || {
-documents: { icon: "DOC", label: "Documents", items: [] },
-clothing: { icon: "CLOTH", label: "Vetements", items: [] },
-health: { icon: "HEALTH", label: "Sante", items: [] },
-tech: { icon: "TECH", label: "Tech", items: [] },
-misc: { icon: "MISC", label: "Divers", items: [] }
-};
-
-guide.photoSpots = Array.isArray(guide.photoSpots) ? guide.photoSpots : [];
-guide.phrasebook = Array.isArray(guide.phrasebook) ? guide.phrasebook : [];
-guide.reminders = Array.isArray(guide.reminders) ? guide.reminders : [];
-guide.budgetItems = Array.isArray(guide.budgetItems) ? guide.budgetItems : [];
-
-return {
-statusCode: 200,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify(guide)
-};
-} catch (error) {
-return {
-statusCode: 500,
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-error: error.message
-})
-};
+return fields;
 }
+
+function extractSingleField(text, key) {
+const regex = new RegExp(`^${escapeRegex(key)}:\\s*(.*)$`, "m");
+const match = text.match(regex);
+return match ? match[1].trim() : "";
+}
+
+function extractBlock(text, startMarker, endMarker) {
+const start = text.indexOf(startMarker);
+const end = text.indexOf(endMarker);
+
+if (start === -1 || end === -1 || end <= start) {
+return "";
+}
+
+return text.slice(start + startMarker.length, end).trim();
+}
+
+function parseItinerary(block, expectedDays) {
+if (!block) {
+return buildFallbackItinerary(expectedDays);
+}
+
+const rawDays = block
+.split("DAY_END")
+.map((part) => part.trim())
+.filter(Boolean);
+
+const parsed = rawDays.map((part, index) => {
+return {
+day: toNumber(extractSingleField(part, "DAY"), index + 1),
+city: extractSingleField(part, "CITY"),
+title: extractSingleField(part, "TITLE"),
+morning: extractSingleField(part, "MORNING"),
+afternoon: extractSingleField(part, "AFTERNOON"),
+evening: extractSingleField(part, "EVENING"),
+highlight: extractSingleField(part, "HIGHLIGHT")
 };
+});
+
+if (!parsed.length) {
+return buildFallbackItinerary(expectedDays);
+}
+
+while (parsed.length < expectedDays) {
+parsed.push({
+day: parsed.length + 1,
+city: parsed[parsed.length - 1]?.city || "",
+title: `Jour ${parsed.length + 1}`,
+morning: "",
+afternoon: "",
+evening: "",
+highlight: ""
+});
+}
+
+return parsed.slice(0, expectedDays);
+}
+
+function parseHotels(block) {
+if (!block) return [];
+
+return block
+.split("HOTEL_END")
+.map((part) => part.trim())
+.filter((part) => part && part.includes("HOTEL:"))
+.map((part) => ({
+city: extractSingleField(part, "CITY"),
+name: extractSingleField(part, "NAME"),
+type: extractSingleField(part, "TYPE"),
+stars: toNumber(extractSingleField(part, "STARS"), 0),
+priceRange: extractSingleField(part, "PRICE_RANGE"),
+description: extractSingleField(part, "DESCRIPTION"),
+tags: splitPipeList(extractSingleField(part, "TAGS"))
+}))
+.filter((hotel) => hotel.name);
+}
+
+function parseRestaurants(block) {
+if (!block) return [];
+
+return block
+.split("RESTAURANT_END")
+.map((part) => part.trim())
+.filter((part) => part && part.includes("RESTAURANT:"))
+.map((part) => ({
+city: extractSingleField(part, "CITY"),
+name: extractSingleField(part, "NAME"),
+cuisine: extractSingleField(part, "CUISINE"),
+price: extractSingleField(part, "PRICE"),
+must: extractSingleField(part, "MUST"),
+address: extractSingleField(part, "ADDRESS"),
+tip: extractSingleField(part, "TIP")
+}))
+.filter((restaurant) => restaurant.name);
+}
+
+function splitPipeList(value) {
+if (!value) return [];
+return value
+.split("|")
+.map((item) => item.trim())
+.filter(Boolean);
+}
+
+function toNumber(value, fallback) {
+const n = Number(String(value || "").replace(/[^\d.-]/g, ""));
+return Number.isFinite(n) ? n : fallback;
+}
+
+function buildFallbackItinerary(days) {
+return Array.from({ length: days }, (_, i) => ({
+day: i + 1,
+city: "",
+title: `Jour ${i + 1}`,
+morning: "",
+afternoon: "",
+evening: "",
+highlight: ""
+}));
+}
+
+function escapeRegex(value) {
+return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
