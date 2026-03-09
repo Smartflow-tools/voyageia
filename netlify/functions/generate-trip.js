@@ -126,8 +126,11 @@ Important :
 - aucune explication
 - aucun markdown
 - aucun texte avant ou après le JSON
-- aucun retour à la ligne dans les valeurs
-- tous les guillemets doivent être échappés
+- pas d'emojis
+- uniquement caractères ASCII
+- pas d'apostrophe simple dans les valeurs
+- remplacer les apostrophes par rien ou reformuler la phrase
+- toutes les valeurs texte doivent tenir sur une seule ligne
 `;
 
 const response = await fetch("https://api.anthropic.com/v1/messages", {
