@@ -208,7 +208,10 @@ preview: cleanedText.slice(0, 500)
 }
 
 let jsonString = cleanedText.slice(start, end);
-jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ").replace(/[^\x00-\x7F]/g, "");
+jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ").replace(/[^\x00-\x7F]/g, "").replace(/'/g, "").replace(/\"/g, '"');
+jsonString = jsonString.replace(/":\s*"([^"]*)"/g, (m, p1) => {
+return '": "' + p1.replace(/"/g, "") + '"';
+});
 
 try {
 guide = JSON.parse(jsonString);
