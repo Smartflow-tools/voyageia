@@ -7,14 +7,24 @@ headers: {
 body: JSON.stringify(payload)
 });
 
-const data = await response.json().catch(() => ({}));
+const text = await response.text();
+
+let data;
+try {
+data = JSON.parse(text);
+} catch (e) {
+throw new Error("Réponse serveur invalide");
+}
 
 if (!response.ok) {
 throw new Error(
-data.error || data.details || data.raw || "Erreur pendant la génération du guide."
+data.preview
+? `${data.error}\n\n${data.preview}`
+: data.error || data.details || data.raw || "Erreur pendant la génération du guide."
 );
 }
 
 return data;
 }
+
 
