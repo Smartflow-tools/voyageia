@@ -76,70 +76,16 @@ if (!text.trim()) {
 return jsonResponse(500, { error: "Réponse IA vide" });
 }
 
-const cleanedText = text
-.replace(/```json/g, "")
-.replace(/```/g, "")
-.trim();
-
-let guide;
-
-try {
-guide = JSON.parse(cleanedText);
-} catch (e) {
-const start = cleanedText.indexOf("{");
-const end = cleanedText.lastIndexOf("}") + 1;
-
-if (start === -1 || end === 0) {
-return jsonResponse(500, {
-error: "Impossible de trouver un JSON valide dans la réponse IA",
-raw: cleanedText.slice(0, 1000)
+const guide = parseStructuredGuide(text, {
+destination,
+departureCity,
+durationDays,
+travelers,
+budgetLevel,
+travelStyle
 });
-}
-
-const jsonString = cleanedText.slice(start, end);
-
-try {
-guide = JSON.parse(jsonString);
-} catch (e2) {
-return jsonResponse(500, {
-error: e2.message,
-raw: jsonString.slice(0, 1000)
-});
-}
-}
-
-guide = {
-destination: guide.destination || destination,
-country: guide.country || "",
-duration: Number(guide.duration || durationDays),
-departureCity: guide.departureCity || departureCity,
-travelers: Number(guide.travelers || travelers),
-style: guide.style || travelStyle,
-budget: guide.budget || budgetLevel,
-summary: guide.summary || "",
-bestPeriod: guide.bestPeriod || "",
-cities: Array.isArray(guide.cities) ? guide.cities : [],
-flightOrigin: guide.flightOrigin || departureCity,
-flightDest: guide.flightDest || destination,
-restaurants: Array.isArray(guide.restaurants) ? guide.restaurants : [],
-hotels: Array.isArray(guide.hotels) ? guide.hotels : [],
-weather: guide.weather || {
-summary: "",
-temperatureRange: "",
-tips: ""
-},
-practicalInfo: guide.practicalInfo || {
-visa: "",
-currency: "",
-language: "",
-transport: "",
-safety: ""
-},
-itinerary: Array.isArray(guide.itinerary) ? guide.itinerary : []
-};
 
 return jsonResponse(200, guide);
-
 } catch (error) {
 return jsonResponse(500, {
 error: error.message || "Erreur serveur"
@@ -169,90 +115,180 @@ month,
 language
 }) {
 return `
-Create a PREMIUM travel guide in JSON format.
+You are creating a premium travel guide.
 
-Destination: ${destination}
-Departure city: ${departureCity}
-Duration: ${durationDays} days
-Travelers: ${travelers}
-Budget: ${budgetLevel}
-Travel style: ${travelStyle}
-Trip type: ${tripType}
-Month: ${month}
-Language: ${language}
+Return ONLY plain text using the exact field markers below.
+Do NOT return JSON.
+Do NOT use markdown.
+Do NOT add commentary before or after.
+Write all content in ${language}.
 
-IMPORTANT:
-Return ONLY valid JSON.
+USER INPUT
+DESTINATION: ${destination}
+DEPARTURE_CITY: ${departureCity}
+DURATION_DAYS: ${durationDays}
+TRAVELERS: ${travelers}
+BUDGET: ${budgetLevel}
+STYLE: ${travelStyle}
+TRIP_TYPE: ${tripType}
+MONTH: ${month}
 
-Structure:
+OUTPUT FORMAT
 
-{
-"destination": "",
-"country": "",
-"summary": "",
-"bestPeriod": "",
-"cities": [],
-"flightOrigin": "${departureCity}",
-"flightDest": "${destination}",
+DESTINATION: ...
+COUNTRY: ...
+DURATION: ...
+DEPARTURE_CITY: ...
+TRAVELERS: ...
+STYLE: ...
+BUDGET: ...
+SUMMARY: ...
+BEST_PERIOD: ...
+CITIES: city1 | city2 | city3
+FLIGHT_ORIGIN: ...
+FLIGHT_DEST: ...
+DISTANCE_KM: ...
+WEATHER_SUMMARY: ...
+TEMPERATURE_RANGE: ...
+WEATHER_TIPS: ...
 
-"restaurants": [
-{
-"city": "",
-"name": "",
-"cuisine": "",
-"price": "€€",
-"must": "",
-"address": "",
-"tip": ""
-}
-],
+ITINERARY_START
+DAY_START
+DAY: 1
+CITY: ...
+TITLE: ...
+MORNING: ...
+AFTERNOON: ...
+EVENING: ...
+HIGHLIGHT: ...
+DAY_END
+DAY_START
+DAY: 2
+CITY: ...
+TITLE: ...
+MORNING: ...
+AFTERNOON: ...
+EVENING: ...
+HIGHLIGHT: ...
+DAY_END
+ITINERARY_END
 
-"hotels": [
-{
-"city": "",
-"name": "",
-"type": "",
-"stars": 4,
-"priceRange": "",
-"description": ""
-}
-],
+HOTELS_START
+HOTEL_START
+HOTEL: 1
+CITY: ...
+NAME: ...
+TYPE: ...
+STARS: ...
+PRICE_RANGE: ...
+DESCRIPTION: ...
+TAGS: ... | ... | ...
+HOTEL_END
+HOTEL_START
+HOTEL: 2
+CITY: ...
+NAME: ...
+TYPE: ...
+STARS: ...
+PRICE_RANGE: ...
+DESCRIPTION: ...
+TAGS: ... | ... | ...
+HOTEL_END
+HOTEL_START
+HOTEL: 3
+CITY: ...
+NAME: ...
+TYPE: ...
+STARS: ...
+PRICE_RANGE: ...
+DESCRIPTION: ...
+TAGS: ... | ... | ...
+HOTEL_END
+HOTEL_START
+HOTEL: 4
+CITY: ...
+NAME: ...
+TYPE: ...
+STARS: ...
+PRICE_RANGE: ...
+DESCRIPTION: ...
+TAGS: ... | ... | ...
+HOTEL_END
+HOTELS_END
 
-"weather": {
-"summary": "",
-"temperatureRange": "",
-"tips": ""
-},
+RESTAURANTS_START
+RESTAURANT_START
+RESTAURANT: 1
+CITY: ...
+NAME: ...
+CUISINE: ...
+PRICE: ...
+MUST: ...
+ADDRESS: ...
+TIP: ...
+RESTAURANT_END
+RESTAURANT_START
+RESTAURANT: 2
+CITY: ...
+NAME: ...
+CUISINE: ...
+PRICE: ...
+MUST: ...
+ADDRESS: ...
+TIP: ...
+RESTAURANT_END
+RESTAURANT_START
+RESTAURANT: 3
+CITY: ...
+NAME: ...
+CUISINE: ...
+PRICE: ...
+MUST: ...
+ADDRESS: ...
+TIP: ...
+RESTAURANT_END
+RESTAURANT_START
+RESTAURANT: 4
+CITY: ...
+NAME: ...
+CUISINE: ...
+PRICE: ...
+MUST: ...
+ADDRESS: ...
+TIP: ...
+RESTAURANT_END
+RESTAURANT_START
+RESTAURANT: 5
+CITY: ...
+NAME: ...
+CUISINE: ...
+PRICE: ...
+MUST: ...
+ADDRESS: ...
+TIP: ...
+RESTAURANT_END
+RESTAURANTS_END
 
-"practicalInfo": {
-"currency": "",
-"transport": "",
-"safety": "",
-"visa": ""
-},
+PRACTICAL_INFO_START
+VISA: ...
+CURRENCY: ...
+LANGUAGE_INFO: ...
+TRANSPORT: ...
+SAFETY: ...
+PRACTICAL_INFO_END
 
-"itinerary": [
-{
-"day": 1,
-"city": "",
-"title": "",
-"highlight": "",
-"morning": "",
-"afternoon": "",
-"evening": ""
-}
-]
-}
-
-IMPORTANT RULES:
-- Restaurants must be REAL and located in the destination
-- Include 3 to 5 restaurants
-- Include a mix of local cuisine and high rated restaurants
-- Hotels must also be real hotels
-- Return ONLY JSON.
+RULES
+- Exactly ${durationDays} days in itinerary
+- Exactly 4 hotels
+- Exactly 5 restaurants
+- Restaurants must be real and destination-specific
+- Keep every field on a single line
+- No bullets
+- No markdown
+- No JSON
+- Do not skip any required markers
 `;
 }
-
 
 function parseStructuredGuide(text, defaults) {
 const normalized = text.replace(/\r/g, "").trim();
@@ -467,3 +503,4 @@ highlight: ""
 function escapeRegex(value) {
 return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
