@@ -120,10 +120,14 @@ Réponds avec un JSON strict contenant exactement cette structure :
 }
 
 Important :
+- JSON strict RFC8259
 - JSON valide uniquement
 - exactement ${durationDays} objets dans itinerary
-- pas de markdown
-- pas de texte avant ou après
+- aucune explication
+- aucun markdown
+- aucun texte avant ou après le JSON
+- aucun retour à la ligne dans les valeurs
+- tous les guillemets doivent être échappés
 `;
 
 const response = await fetch("https://api.anthropic.com/v1/messages", {
