@@ -115,99 +115,90 @@ month,
 language
 }) {
 return `
-You are creating a premium travel guide.
+Create a PREMIUM travel guide in JSON format.
 
-Return ONLY plain text using the exact field markers below.
-Do NOT return JSON.
-Do NOT use markdown.
-Do NOT add commentary before or after.
-Write all content in ${language}.
+Destination: ${destination}
+Departure city: ${departureCity}
+Duration: ${durationDays} days
+Travelers: ${travelers}
+Budget: ${budgetLevel}
+Travel style: ${travelStyle}
+Trip type: ${tripType}
+Month: ${month}
+Language: ${language}
 
-USER INPUT
-DESTINATION: ${destination}
-DEPARTURE_CITY: ${departureCity}
-DURATION_DAYS: ${durationDays}
-TRAVELERS: ${travelers}
-BUDGET: ${budgetLevel}
-STYLE: ${travelStyle}
-TRIP_TYPE: ${tripType}
-MONTH: ${month}
+IMPORTANT:
+Return ONLY valid JSON.
 
-OUTPUT FORMAT
+Structure:
 
-DESTINATION: ...
-COUNTRY: ...
-DURATION: ...
-DEPARTURE_CITY: ...
-TRAVELERS: ...
-STYLE: ...
-BUDGET: ...
-SUMMARY: ...
-BEST_PERIOD: ...
-CITIES: city1 | city2 | city3
-FLIGHT_ORIGIN: ...
-FLIGHT_DEST: ...
-DISTANCE_KM: ...
+{
+"destination": "",
+"country": "",
+"summary": "",
+"bestPeriod": "",
+"cities": [],
+"flightOrigin": "${departureCity}",
+"flightDest": "${destination}",
 
-WEATHER_SUMMARY: ...
-TEMPERATURE_RANGE: ...
-WEATHER_TIPS: ...
+"restaurants": [
+{
+"city": "",
+"name": "",
+"cuisine": "",
+"price": "€€",
+"must": "",
+"address": "",
+"tip": ""
+}
+],
 
-ITINERARY_START
-DAY: 1
-CITY: ...
-TITLE: ...
-MORNING: ...
-AFTERNOON: ...
-EVENING: ...
-HIGHLIGHT: ...
-DAY_END
-ITINERARY_END
+"hotels": [
+{
+"city": "",
+"name": "",
+"type": "",
+"stars": 4,
+"priceRange": "",
+"description": ""
+}
+],
 
-HOTELS_START
-HOTEL:
-CITY: ...
-NAME: ...
-TYPE: ...
-STARS: ...
-PRICE_RANGE: ...
-DESCRIPTION: ...
-TAGS: tag1 | tag2 | tag3
-HOTEL_END
-HOTELS_END
+"weather": {
+"summary": "",
+"temperatureRange": "",
+"tips": ""
+},
 
-RESTAURANTS_START
-RESTAURANT:
-CITY: ...
-NAME: ...
-CUISINE: ...
-PRICE: ...
-MUST: ...
-ADDRESS: ...
-TIP: ...
-RESTAURANT_END
-RESTAURANTS_END
+"practicalInfo": {
+"currency": "",
+"transport": "",
+"safety": "",
+"visa": ""
+},
 
-PRACTICAL_INFO_START
-VISA: ...
-CURRENCY: ...
-LANGUAGE_INFO: ...
-TRANSPORT: ...
-SAFETY: ...
-PRACTICAL_INFO_END
+"itinerary": [
+{
+"day": 1,
+"city": "",
+"title": "",
+"highlight": "",
+"morning": "",
+"afternoon": "",
+"evening": ""
+}
+]
+}
 
-RULES
-- Exactly ${durationDays} days in itinerary
-- Exactly 4 hotels
-- Exactly 5 restaurants
-- Restaurants must be real and destination-specific
-- Keep every field on a single line
-- No bullets
-- No markdown
-- No JSON
-- Do not skip any required markers
+IMPORTANT RULES:
+- Restaurants must be REAL and located in the destination
+- Include 3 to 5 restaurants
+- Include a mix of local cuisine and high rated restaurants
+- Hotels must also be real hotels
+- Return ONLY JSON.
 `;
 }
+
 
 function parseStructuredGuide(text, defaults) {
 const normalized = text.replace(/\r/g, "").trim();
