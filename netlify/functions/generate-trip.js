@@ -10,7 +10,6 @@ body: JSON.stringify({ error: "Method not allowed" })
 };
 }
 
-try {
 const body = JSON.parse(event.body || "{}");
 
 const {
