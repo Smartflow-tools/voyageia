@@ -212,6 +212,11 @@ jsonString = jsonString.replace(/\n/g, " ").replace(/\r/g, " ").replace(/[^\x00-
 
 try {
 guide = JSON.parse(jsonString);
+guide.health = guide.health || {};
+guide.carbon = guide.carbon || {};
+guide.family = guide.family || {};
+guide.practicalInfo = guide.practicalInfo || {};
+guide.budgetItems = guide.budgetItems || [];
 } catch (e2) {
 const match = String(e2.message).match(/position (\d+)/);
 const pos = match ? Number(match[1]) : 0;
