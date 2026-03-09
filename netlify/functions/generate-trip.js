@@ -76,16 +76,70 @@ if (!text.trim()) {
 return jsonResponse(500, { error: "Réponse IA vide" });
 }
 
-const guide = parseStructuredGuide(text, {
-destination,
-departureCity,
-durationDays,
-travelers,
-budgetLevel,
-travelStyle
+const cleanedText = text
+.replace(/```json/g, "")
+.replace(/```/g, "")
+.trim();
+
+let guide;
+
+try {
+guide = JSON.parse(cleanedText);
+} catch (e) {
+const start = cleanedText.indexOf("{");
+const end = cleanedText.lastIndexOf("}") + 1;
+
+if (start === -1 || end === 0) {
+return jsonResponse(500, {
+error: "Impossible de trouver un JSON valide dans la réponse IA",
+raw: cleanedText.slice(0, 1000)
 });
+}
+
+const jsonString = cleanedText.slice(start, end);
+
+try {
+guide = JSON.parse(jsonString);
+} catch (e2) {
+return jsonResponse(500, {
+error: e2.message,
+raw: jsonString.slice(0, 1000)
+});
+}
+}
+
+guide = {
+destination: guide.destination || destination,
+country: guide.country || "",
+duration: Number(guide.duration || durationDays),
+departureCity: guide.departureCity || departureCity,
+travelers: Number(guide.travelers || travelers),
+style: guide.style || travelStyle,
+budget: guide.budget || budgetLevel,
+summary: guide.summary || "",
+bestPeriod: guide.bestPeriod || "",
+cities: Array.isArray(guide.cities) ? guide.cities : [],
+flightOrigin: guide.flightOrigin || departureCity,
+flightDest: guide.flightDest || destination,
+restaurants: Array.isArray(guide.restaurants) ? guide.restaurants : [],
+hotels: Array.isArray(guide.hotels) ? guide.hotels : [],
+weather: guide.weather || {
+summary: "",
+temperatureRange: "",
+tips: ""
+},
+practicalInfo: guide.practicalInfo || {
+visa: "",
+currency: "",
+language: "",
+transport: "",
+safety: ""
+},
+itinerary: Array.isArray(guide.itinerary) ? guide.itinerary : []
+};
 
 return jsonResponse(200, guide);
+
 } catch (error) {
 return jsonResponse(500, {
 error: error.message || "Erreur serveur"
