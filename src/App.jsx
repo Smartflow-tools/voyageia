@@ -23,6 +23,8 @@ const tabs = useMemo(
 { id: "restaurants", label: "Restaurants", icon: "🍽️" },
 { id: "hotels", label: "Hôtels", icon: "🏨" },
 { id: "weather", label: "Météo", icon: "🌤️" },
+{ id: "flights", label: "Vols", icon: "✈️" },
+{ id: "map", label: "Carte", icon: "📍" },
 { id: "overview", label: "Infos", icon: "✨" }
 ],
 []
@@ -162,6 +164,7 @@ return (
 </div>
 <div style={styles.priceTag}>{hotel.priceRange || "Tarif non précisé"}</div>
 <p style={styles.cardText}>{hotel.description || "Description non disponible."}</p>
+
 {hotel.tags?.length ? (
 <div style={styles.tagsWrap}>
 {hotel.tags.map((tag, i) => (
@@ -170,6 +173,19 @@ return (
 </span>
 ))}
 </div>
+) : null}
+
+{trip.destination ? (
+<a
+href={`https://www.google.com/maps/search/${encodeURIComponent(
+`${hotel.name || "hotel"} ${hotel.city || trip.destination}`
+)}`}
+target="_blank"
+rel="noopener noreferrer"
+style={styles.linkButton}
+>
+Voir sur Google Maps
+</a>
 ) : null}
 </div>
 ))}
@@ -198,6 +214,17 @@ return (
 </p>
 {restaurant.address ? <p style={styles.smallMuted}>📍 {restaurant.address}</p> : null}
 {restaurant.tip ? <p style={styles.smallMuted}>💡 {restaurant.tip}</p> : null}
+
+<a
+href={`https://www.google.com/maps/search/${encodeURIComponent(
+`${restaurant.name || "restaurant"} ${restaurant.city || trip.destination || ""}`
+)}`}
+target="_blank"
+rel="noopener noreferrer"
+style={styles.linkButton}
+>
+Voir sur Google Maps
+</a>
 </div>
 ))}
 </div>
@@ -218,6 +245,129 @@ return (
 );
 }
 
+function renderFlights() {
+if (!trip) return null;
+
+const origin = trip.flightOrigin || departureCity || "PAR";
+const dest = trip.flightDest || destination || "";
+const destinationText = trip.destination || destination || "";
+
+const skyscanner = `https://www.skyscanner.fr/transport/vols/${encodeURIComponent(
+origin
+)}/${encodeURIComponent(dest)}/`;
+
+const googleFlights = `https://www.google.com/travel/flights?q=${encodeURIComponent(
+`flights ${origin} to ${dest}`
+)}`;
+
+return (
+<div style={styles.grid2}>
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>✈️ Trajet conseillé</div>
+<div style={styles.cardTitle}>{origin} → {dest || destinationText}</div>
+<p style={styles.cardText}>
+Consulte rapidement les options de vols et compare les prix sur plusieurs plateformes.
+</p>
+</div>
+
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>🔎 Comparateur</div>
+<div style={styles.cardTitle}>Skyscanner</div>
+<p style={styles.cardText}>
+Recherche rapide des meilleurs vols selon tes dates et ton budget.
+</p>
+<a
+href={skyscanner}
+target="_blank"
+rel="noopener noreferrer"
+style={styles.linkButton}
+>
+Voir les vols
+</a>
+</div>
+
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>📈 Comparer les prix</div>
+<div style={styles.cardTitle}>Google Flights</div>
+<p style={styles.cardText}>
+Compare les tarifs et regarde facilement les différentes options.
+</p>
+<a
+href={googleFlights}
+target="_blank"
+rel="noopener noreferrer"
+style={styles.linkButton}
+>
+Comparer les prix
+</a>
+</div>
+</div>
+);
+}
+
+function renderMap() {
+if (!trip) return null;
+
+const city = trip.destination || destination;
+const mapCity = `https://www.google.com/maps/search/${encodeURIComponent(city)}`;
+const mapHotels = `https://www.google.com/maps/search/${encodeURIComponent(`hotels in ${city}`)}`;
+const mapRestaurants = `https://www.google.com/maps/search/${encodeURIComponent(`restaurants in ${city}`)}`;
+
+const cityStops = (trip.cities || []).filter(Boolean);
+
+return (
+<div style={{ display: "grid", gap: 16 }}>
+<div style={styles.grid2}>
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>📍 Destination</div>
+<div style={styles.cardTitle}>{city}</div>
+<p style={styles.cardText}>Ouvre directement la destination sur Google Maps.</p>
+<a href={mapCity} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+Ouvrir Google Maps
+</a>
+</div>
+
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>🏨 Hôtels</div>
+<div style={styles.cardTitle}>Voir les hébergements</div>
+<p style={styles.cardText}>Affiche les hôtels à proximité sur la carte.</p>
+<a href={mapHotels} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+Voir les hôtels
+</a>
+</div>
+
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>🍽️ Restaurants</div>
+<div style={styles.cardTitle}>Voir les bonnes adresses</div>
+<p style={styles.cardText}>Affiche les restaurants de la destination sur la carte.</p>
+<a href={mapRestaurants} target="_blank" rel="noopener noreferrer" style={styles.linkButton}>
+Voir les restaurants
+</a>
+</div>
+</div>
+
+{cityStops.length ? (
+<div style={styles.infoCard}>
+<div style={styles.cardTopMeta}>🧭 Étapes du voyage</div>
+<div style={styles.tagsWrap}>
+{cityStops.map((stop, i) => (
+<a
+key={i}
+href={`https://www.google.com/maps/search/${encodeURIComponent(stop)}`}
+target="_blank"
+rel="noopener noreferrer"
+style={styles.mapChip}
+>
+{stop}
+</a>
+))}
+</div>
+</div>
+) : null}
+</div>
+);
+}
+
 function renderTab() {
 switch (activeTab) {
 case "restaurants":
@@ -226,6 +376,10 @@ case "hotels":
 return renderHotels();
 case "weather":
 return renderWeather();
+case "flights":
+return renderFlights();
+case "map":
+return renderMap();
 case "overview":
 return renderOverview();
 case "itinerary":
@@ -244,7 +398,7 @@ background: #09090d;
 color: #f4f1ea;
 font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-button, input, select { font: inherit; }
+button, input, select, a { font: inherit; }
 `}</style>
 
 <div style={styles.bgGlowOne} />
@@ -257,7 +411,7 @@ button, input, select { font: inherit; }
 <h1 style={styles.heroTitle}>Ton guide de voyage premium, généré par IA</h1>
 <p style={styles.heroText}>
 Crée un itinéraire élégant, rapide à lire, avec les bonnes étapes,
-des hôtels et des restaurants adaptés à ton voyage.
+des hôtels, des restaurants et des liens utiles pour ton voyage.
 </p>
 </div>
 
@@ -371,7 +525,7 @@ cursor: loading ? "wait" : "pointer"
 </button>
 
 <div style={styles.formHint}>
-Itinéraire, hôtels, restaurants, météo et infos pratiques.
+Itinéraire, hôtels, restaurants, météo, carte et vols.
 </div>
 </div>
 </section>
@@ -597,7 +751,25 @@ borderRadius: 14,
 padding: "14px 22px",
 fontWeight: 700,
 fontSize: 15,
-boxShadow: "0 10px 24px rgba(216,183,107,0.25)"
+boxShadow: "0 10px 24px rgba(216,183,107,0.25)",
+textDecoration: "none",
+display: "inline-flex",
+alignItems: "center",
+justifyContent: "center"
+},
+linkButton: {
+marginTop: 14,
+background: "linear-gradient(135deg, #d8b76b 0%, #f0d58b 100%)",
+color: "#111118",
+border: "none",
+borderRadius: 12,
+padding: "12px 16px",
+fontWeight: 700,
+fontSize: 14,
+textDecoration: "none",
+display: "inline-flex",
+alignItems: "center",
+justifyContent: "center"
 },
 formHint: {
 color: "#a39b8b",
@@ -673,7 +845,8 @@ fontSize: 14
 metaValue: {
 color: "#f5f1e6",
 fontWeight: 600,
-textTransform: "capitalize"
+textTransform: "capitalize",
+textAlign: "right"
 },
 tabs: {
 marginTop: 24,
@@ -847,6 +1020,15 @@ borderRadius: 999,
 padding: "6px 10px",
 fontSize: 12,
 color: "#cfc7b7"
+},
+mapChip: {
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(216,183,107,0.10)",
+borderRadius: 999,
+padding: "8px 12px",
+fontSize: 13,
+color: "#f4f1ea",
+textDecoration: "none"
 },
 smallMuted: {
 color: "#a49c8c",
