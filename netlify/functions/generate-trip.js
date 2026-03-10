@@ -51,7 +51,7 @@ headers: {
 },
 body: JSON.stringify({
 model: "claude-haiku-4-5-20251001",
-max_tokens: 2600,
+max_tokens: 3600,
 temperature: 0.2,
 messages: [
 {
@@ -75,6 +75,9 @@ const text = data?.content?.[0]?.text || "";
 if (!text.trim()) {
 return jsonResponse(500, { error: "Réponse IA vide" });
 }
+
+console.log("RAW IA RESPONSE:");
+console.log(text);
 
 const guide = parseStructuredGuide(text, {
 destination,
@@ -282,7 +285,9 @@ RULES
 - Exactly 4 hotels
 - Exactly 5 restaurants
 - Restaurants must be real and destination-specific
-- Keep every field on a single line
+- Every restaurant MUST include CITY, NAME, CUISINE, PRICE, MUST, ADDRESS, TIP
+- Put each field on one single line
+- Do not leave restaurant fields empty
 - No bullets
 - No markdown
 - No JSON
@@ -439,20 +444,38 @@ tags: splitPipeList(extractSingleField(part, "TAGS"))
 function parseRestaurants(block) {
 if (!block) return [];
 
-return block
+const items = block
 .split("RESTAURANT_END")
 .map((part) => part.trim())
-.filter((part) => part && part.includes("RESTAURANT:"))
-.map((part) => ({
-city: extractSingleField(part, "CITY"),
-name: extractSingleField(part, "NAME"),
-cuisine: extractSingleField(part, "CUISINE"),
-price: extractSingleField(part, "PRICE"),
-must: extractSingleField(part, "MUST"),
-address: extractSingleField(part, "ADDRESS"),
-tip: extractSingleField(part, "TIP")
-}))
+.filter(Boolean)
+.filter(
+(part) =>
+part.includes("RESTAURANT:") ||
+part.includes("NAME:") ||
+part.includes("CITY:")
+)
+.map((part) => {
+const city = extractSingleField(part, "CITY");
+const name = extractSingleField(part, "NAME");
+const cuisine = extractSingleField(part, "CUISINE");
+const price = extractSingleField(part, "PRICE");
+const must = extractSingleField(part, "MUST");
+const address = extractSingleField(part, "ADDRESS");
+const tip = extractSingleField(part, "TIP");
+
+return {
+city,
+name,
+cuisine,
+price,
+must,
+address,
+tip
+};
+})
 .filter((restaurant) => restaurant.name);
+
+return items;
 }
 
 function parsePracticalInfo(block) {
@@ -503,4 +526,3 @@ highlight: ""
 function escapeRegex(value) {
 return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
